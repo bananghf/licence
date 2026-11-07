@@ -12,7 +12,7 @@ import {
   Select,
   Textarea,
 } from '../components/ui'
-import type { CatalogItem, CatalogKind } from '../types'
+import type { CatalogItem, CatalogKind, CompositionLine } from '../types'
 
 type Tab = CatalogKind
 
@@ -25,6 +25,7 @@ const emptyForm = (kind: CatalogKind): Omit<CatalogItem, 'id'> => ({
   cost: 0,
   description: '',
   tags: [],
+  composition: [],
   active: true,
 })
 
@@ -35,6 +36,10 @@ export function CatalogPage() {
   const catalog = useCrmStore((s) => s.catalog)
   const upsert = useCrmStore((s) => s.upsertCatalogItem)
   const remove = useCrmStore((s) => s.deleteCatalogItem)
+  const ingredients = useMemo(
+    () => catalog.filter((c) => c.kind === 'ingredient' && c.active),
+    [catalog],
+  )
 
   const [q, setQ] = useState(qParam)
   const [editing, setEditing] = useState<(Omit<CatalogItem, 'id'> & { id?: string }) | null>(
@@ -107,6 +112,7 @@ export function CatalogPage() {
                 {tab !== 'ingredient' ? <th>Ціна</th> : null}
                 <th>Собів.</th>
                 <th>Теги</th>
+                {tab === 'product' ? <th>ТТК</th> : null}
                 <th>Статус</th>
                 <th></th>
               </tr>
@@ -135,6 +141,13 @@ export function CatalogPage() {
                       ))}
                     </div>
                   </td>
+                  {tab === 'product' ? (
+                    <td>
+                      {(item.composition || []).length
+                        ? `${item.composition!.length} інгр.`
+                        : '—'}
+                    </td>
+                  ) : null}
                   <td>{item.active ? 'Активний' : 'Вимкнено'}</td>
                   <td>
                     <div className="btn-row">
@@ -156,7 +169,7 @@ export function CatalogPage() {
               ))}
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={tab === 'product' ? 9 : 8}>
                     <div className="empty">Порожньо</div>
                   </td>
                 </tr>
@@ -279,6 +292,104 @@ export function CatalogPage() {
               <option value="0">Вимкнено</option>
             </Select>
           </Label>
+
+          {editing.kind === 'product' ? (
+            <div style={{ marginTop: 12 }}>
+              <div
+                className="section-title"
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
+                <span>Склад (ТТК)</span>
+                <Select
+                  style={{ maxWidth: 240 }}
+                  defaultValue=""
+                  onChange={(e) => {
+                    const ingredientId = e.target.value
+                    if (!ingredientId) return
+                    const composition: CompositionLine[] = [
+                      ...(editing.composition || []),
+                      { ingredientId, qty: 0.05 },
+                    ]
+                    setEditing({ ...editing, composition })
+                    e.target.value = ''
+                  }}
+                >
+                  <option value="">+ інгредієнт</option>
+                  {ingredients
+                    .filter(
+                      (i) => !(editing.composition || []).some((c) => c.ingredientId === i.id),
+                    )
+                    .map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.name}
+                      </option>
+                    ))}
+                </Select>
+              </div>
+              <p className="muted" style={{ fontSize: 12, marginBottom: 8 }}>
+                Кількість на 1 порцію. Використовується для генерації закупок з замовлень.
+              </p>
+              {(editing.composition || []).length === 0 ? (
+                <div className="empty">Немає складу — додайте інгредієнти</div>
+              ) : (
+                <div className="table-wrap">
+                  <table className="data">
+                    <thead>
+                      <tr>
+                        <th>Інгредієнт</th>
+                        <th>К-сть / порц.</th>
+                        <th>Од.</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(editing.composition || []).map((row, idx) => {
+                        const ing = ingredients.find((i) => i.id === row.ingredientId)
+                        return (
+                          <tr key={`${row.ingredientId}-${idx}`}>
+                            <td>{ing?.name || row.ingredientId}</td>
+                            <td>
+                              <Field
+                                type="number"
+                                min={0}
+                                step={0.001}
+                                value={row.qty}
+                                onChange={(e) => {
+                                  const composition = [...(editing.composition || [])]
+                                  composition[idx] = {
+                                    ...row,
+                                    qty: Number(e.target.value) || 0,
+                                  }
+                                  setEditing({ ...editing, composition })
+                                }}
+                              />
+                            </td>
+                            <td>{ing?.unit || '—'}</td>
+                            <td>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() =>
+                                  setEditing({
+                                    ...editing,
+                                    composition: (editing.composition || []).filter(
+                                      (_, i) => i !== idx,
+                                    ),
+                                  })
+                                }
+                              >
+                                ✕
+                              </Button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          ) : null}
         </Modal>
       ) : null}
     </div>

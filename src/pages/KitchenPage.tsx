@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router-dom'
 import { useCrmStore } from '../store/useCrmStore'
-import { formatDateTime } from '../lib/format'
+import { formatDate, formatDateTime } from '../lib/format'
 import { SERVICE_LABELS } from '../lib/labels'
 import { Button, PageHeader } from '../components/ui'
 
@@ -8,6 +8,7 @@ export function KitchenPage() {
   const { id } = useParams()
   const order = useCrmStore((s) => s.orders.find((o) => o.id === id))
   const settings = useCrmStore((s) => s.settings)
+  const catalog = useCrmStore((s) => s.catalog)
 
   if (!order) {
     return (
@@ -20,15 +21,19 @@ export function KitchenPage() {
 
   const productLines = order.lines.filter((l) => l.kind === 'product')
   const sections = [...new Set(productLines.map((l) => l.section || 'Кухня'))]
+  const productionLabel = order.productionDate
+    ? formatDate(order.productionDate)
+    : formatDate(order.eventStart)
 
   return (
     <div>
       <div className="no-print">
         <PageHeader
           title={`Кухня · ${order.number}`}
-          subtitle="Друкований лист завдань"
+          subtitle="Внутрішня смета / друкований лист завдань"
           actions={
             <>
+              <Link className="btn" to="/kitchen">Черга кухні</Link>
               <Link className="btn" to={`/orders/${order.id}`}>← Замовлення</Link>
               <Button variant="primary" onClick={() => window.print()}>Друк</Button>
             </>
@@ -44,9 +49,12 @@ export function KitchenPage() {
             <div style={{ marginTop: 6 }}>
               <strong>{order.number}</strong> · {order.title}
             </div>
+            <div className="muted" style={{ marginTop: 4, fontSize: 13 }}>
+              Виробництво: {productionLabel}
+            </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div>{formatDateTime(order.eventStart)}</div>
+            <div>Подія: {formatDateTime(order.eventStart)}</div>
             <div>{SERVICE_LABELS[order.serviceType]}</div>
             <div><strong>{order.guests}</strong> гостей / <strong>{order.portions}</strong> порцій</div>
           </div>
@@ -73,21 +81,35 @@ export function KitchenPage() {
                   <th>Страва</th>
                   <th>К-сть</th>
                   <th>Од.</th>
-                  <th>Примітка</th>
+                  <th>Склад (ТТК)</th>
                 </tr>
               </thead>
               <tbody>
                 {productLines
                   .filter((l) => (l.section || 'Кухня') === section)
-                  .map((l) => (
-                    <tr key={l.id}>
-                      <td style={{ fontSize: 18 }}>☐</td>
-                      <td><strong>{l.name}</strong></td>
-                      <td style={{ fontSize: 18, fontWeight: 750 }}>{l.qty}</td>
-                      <td>{l.unit}</td>
-                      <td></td>
-                    </tr>
-                  ))}
+                  .map((l) => {
+                    const bom = l.catalogItemId
+                      ? catalog.find((c) => c.id === l.catalogItemId)?.composition || []
+                      : []
+                    const bomText = bom
+                      .map((row) => {
+                        const ing = catalog.find((c) => c.id === row.ingredientId)
+                        if (!ing) return null
+                        const qty = Math.round(row.qty * l.qty * 1000) / 1000
+                        return `${ing.name} ${qty} ${ing.unit}`
+                      })
+                      .filter(Boolean)
+                      .join(' · ')
+                    return (
+                      <tr key={l.id}>
+                        <td style={{ fontSize: 18 }}>☐</td>
+                        <td><strong>{l.name}</strong></td>
+                        <td style={{ fontSize: 18, fontWeight: 750 }}>{l.qty}</td>
+                        <td>{l.unit}</td>
+                        <td style={{ fontSize: 12 }}>{bomText || '—'}</td>
+                      </tr>
+                    )
+                  })}
               </tbody>
             </table>
           </div>

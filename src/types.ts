@@ -20,6 +20,12 @@ export type CatalogKind = 'product' | 'service' | 'ingredient'
 
 export type PurchaseStatus = 'planned' | 'ordered' | 'received'
 
+/** One line of a dish tech card (ТТК / BOM). qty is per 1 portion of the product. */
+export interface CompositionLine {
+  ingredientId: string
+  qty: number
+}
+
 export interface Company {
   id: string
   name: string
@@ -52,6 +58,8 @@ export interface CatalogItem {
   cost: number
   description?: string
   tags: string[]
+  /** Ingredient BOM for products — drives purchase lists from orders. */
+  composition?: CompositionLine[]
   active: boolean
 }
 
@@ -96,6 +104,8 @@ export interface Order {
   payments: Payment[]
   notes?: string
   kitchenNotes?: string
+  /** Production / prep date shown on kitchen sheets. */
+  productionDate?: string
   published: boolean
   createdAt: string
   updatedAt: string
@@ -127,6 +137,9 @@ export interface AppSettings {
   currency: string
   timezone: string
   managers: string[]
+  /** Named payment accounts / methods (cash, bank, etc.). */
+  paymentAccounts: string[]
+  trackPayments: boolean
   serviceTypes: { id: ServiceType; label: string }[]
   orderStatuses: { id: OrderStatus; label: string; color: string }[]
 }

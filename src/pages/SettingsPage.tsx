@@ -9,6 +9,7 @@ export function SettingsPage() {
   const removeManager = useCrmStore((s) => s.removeManager)
   const resetDemo = useCrmStore((s) => s.resetDemo)
   const [managerName, setManagerName] = useState('')
+  const [accountName, setAccountName] = useState('')
   const [saved, setSaved] = useState(false)
 
   const flash = () => {
@@ -16,11 +17,13 @@ export function SettingsPage() {
     setTimeout(() => setSaved(false), 1500)
   }
 
+  const accounts = settings.paymentAccounts || []
+
   return (
     <div>
       <PageHeader
         title="Налаштування"
-        subtitle="Бренд панелі, менеджери та демо-дані"
+        subtitle="Бренд панелі, фінанси, менеджери та демо-дані"
         actions={
           saved ? <span className="badge" style={{ color: 'var(--ok)' }}>Збережено</span> : null
         }
@@ -70,6 +73,72 @@ export function SettingsPage() {
                 <option value="UTC">UTC</option>
               </Select>
             </Label>
+          </div>
+
+          <div className="section-title" style={{ marginTop: 18 }}>
+            Фінанси
+          </div>
+          <Label label="Облік платежів">
+            <Select
+              value={settings.trackPayments ? '1' : '0'}
+              onChange={(e) => {
+                updateSettings({ trackPayments: e.target.value === '1' })
+                flash()
+              }}
+            >
+              <option value="1">Увімкнено</option>
+              <option value="0">Вимкнено</option>
+            </Select>
+          </Label>
+          <div style={{ display: 'grid', gap: 8, marginTop: 10, marginBottom: 10 }}>
+            {accounts.map((a) => (
+              <div
+                key={a}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 10px',
+                  borderRadius: 10,
+                  border: '1px solid var(--line)',
+                  background: 'var(--surface)',
+                }}
+              >
+                <span>{a}</span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    updateSettings({
+                      paymentAccounts: accounts.filter((x) => x !== a),
+                    })
+                    flash()
+                  }}
+                >
+                  ✕
+                </Button>
+              </div>
+            ))}
+          </div>
+          <div className="btn-row">
+            <Field
+              placeholder="Назва рахунку (Готівка, Безготівка…)"
+              value={accountName}
+              onChange={(e) => setAccountName(e.target.value)}
+            />
+            <Button
+              variant="primary"
+              onClick={() => {
+                const trimmed = accountName.trim()
+                if (!trimmed || accounts.includes(trimmed)) return
+                updateSettings({ paymentAccounts: [...accounts, trimmed] })
+                setAccountName('')
+                flash()
+              }}
+            >
+              + Рахунок
+            </Button>
           </div>
 
           <div className="section-title" style={{ marginTop: 18 }}>
@@ -141,8 +210,8 @@ export function SettingsPage() {
             Дані
           </div>
           <p className="muted" style={{ fontSize: 13, marginBottom: 10 }}>
-            Усі дані зберігаються в localStorage браузера (ключ shastya-crm-v1). Можна
-            скинути до демо «Щастя».
+            Усі дані зберігаються в localStorage браузера (ключ shastya-crm-v2). Можна
+            скинути до демо «Щастя» з ТТК страв.
           </p>
           <Button
             variant="danger"

@@ -44,14 +44,23 @@ export function ReportsPage() {
       }
     }).filter((x) => x.count > 0)
 
-    // ABC by catalog line revenue
-    const productMap = new Map<string, { name: string; revenue: number; qty: number }>()
+    // ABC + menu engineering by catalog line revenue / margin / popularity
+    const productMap = new Map<
+      string,
+      { name: string; revenue: number; qty: number; cost: number }
+    >()
     for (const o of relevant) {
       for (const line of o.lines) {
         if (line.kind !== 'product') continue
         const key = line.catalogItemId || line.name
-        const prev = productMap.get(key) || { name: line.name, revenue: 0, qty: 0 }
+        const prev = productMap.get(key) || {
+          name: line.name,
+          revenue: 0,
+          qty: 0,
+          cost: 0,
+        }
         prev.revenue += lineTotal(line)
+        prev.cost += line.qty * line.cost
         prev.qty += line.qty
         productMap.set(key, prev)
       }
@@ -65,6 +74,30 @@ export function ReportsPage() {
       const cumShare = (cum / totalProdRev) * 100
       const grade = cumShare <= 80 ? 'A' : cumShare <= 95 ? 'B' : 'C'
       return { ...p, share, cumShare, grade }
+    })
+
+    const avgQty =
+      products.length === 0
+        ? 0
+        : products.reduce((s, p) => s + p.qty, 0) / products.length
+    const avgMarginPct =
+      products.length === 0
+        ? 0
+        : products.reduce((s, p) => {
+            const m = p.revenue > 0 ? ((p.revenue - p.cost) / p.revenue) * 100 : 0
+            return s + m
+          }, 0) / products.length
+
+    const menuEng = products.map((p) => {
+      const marginPct = p.revenue > 0 ? ((p.revenue - p.cost) / p.revenue) * 100 : 0
+      const popular = p.qty >= avgQty
+      const highMargin = marginPct >= avgMarginPct
+      let role: 'star' | 'horse' | 'puzzle' | 'dog'
+      if (popular && highMargin) role = 'star'
+      else if (popular && !highMargin) role = 'horse'
+      else if (!popular && highMargin) role = 'puzzle'
+      else role = 'dog'
+      return { ...p, marginPct, role }
     })
 
     const purchaseSpend = purchases.reduce(
@@ -84,11 +117,22 @@ export function ReportsPage() {
       avgMargin,
       byService,
       abc,
+      menuEng,
       purchaseSpend,
       pipeline,
       count: relevant.length,
     }
   }, [orders, purchases])
+
+  const roleMeta: Record<
+    'star' | 'horse' | 'puzzle' | 'dog',
+    { label: string; hint: string; color: string }
+  > = {
+    star: { label: 'Зірки', hint: 'популярні + висока маржа', color: 'var(--ok)' },
+    horse: { label: 'Робочі коні', hint: 'популярні, маржа нижча', color: 'var(--warn)' },
+    puzzle: { label: 'Загадки', hint: 'рідкісні, висока маржа', color: '#2f6fed' },
+    dog: { label: 'Собаки', hint: 'рідкісні + низька маржа', color: 'var(--muted)' },
+  }
 
   const maxService = Math.max(...report.byService.map((s) => s.revenue), 1)
 
@@ -96,7 +140,7 @@ export function ReportsPage() {
     <div>
       <PageHeader
         title="Звіти"
-        subtitle="Виручка, маржинальність та ABC-аналіз страв (90 днів)"
+        subtitle="Продажі, рентабельність, ABC та меню-інжиніринг (90 днів)"
       />
 
       <div className="stat-grid">
@@ -239,6 +283,53 @@ export function ReportsPage() {
               ) : null}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="panel panel-pad" style={{ marginTop: 14 }}>
+        <div className="section-title">Меню-інжиніринг</div>
+        <p className="muted" style={{ fontSize: 13, marginBottom: 12 }}>
+          Матриця популярність × маржа (як у Caiter-класі аналітики): зірки, робочі коні,
+          загадки, собаки.
+        </p>
+        <div className="grid-2" style={{ marginBottom: 14 }}>
+          {(['star', 'horse', 'puzzle', 'dog'] as const).map((role) => {
+            const rows = report.menuEng.filter((r) => r.role === role)
+            return (
+              <div
+                key={role}
+                style={{
+                  border: '1px solid var(--line)',
+                  borderRadius: 12,
+                  padding: 12,
+                  background: 'var(--surface)',
+                }}
+              >
+                <div style={{ fontWeight: 700, color: roleMeta[role].color }}>
+                  {roleMeta[role].label} · {rows.length}
+                </div>
+                <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>
+                  {roleMeta[role].hint}
+                </div>
+                {rows.length === 0 ? (
+                  <div className="empty" style={{ padding: 8 }}>
+                    —
+                  </div>
+                ) : (
+                  <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
+                    {rows.slice(0, 6).map((r) => (
+                      <li key={r.name}>
+                        {r.name}{' '}
+                        <span className="muted">
+                          · {Math.round(r.qty)} порц. · {r.marginPct.toFixed(0)}%
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>

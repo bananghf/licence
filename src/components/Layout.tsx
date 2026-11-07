@@ -7,9 +7,10 @@ const nav = [
   { to: '/', label: 'Огляд', icon: '◈', end: true },
   { to: '/orders', label: 'Замовлення', icon: '☰' },
   { to: '/calendar', label: 'Календар', icon: '▦' },
+  { to: '/kitchen', label: 'Кухня', icon: '▣' },
   { to: '/catalog', label: 'Каталог', icon: '◎' },
   { to: '/clients', label: 'Клієнти', icon: '☺' },
-  { to: '/purchases', label: 'Закупки', icon: '▣' },
+  { to: '/purchases', label: 'Закупки', icon: '▤' },
   { to: '/reports', label: 'Звіти', icon: '◫' },
   { to: '/settings', label: 'Налаштування', icon: '⚙' },
 ]

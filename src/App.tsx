@@ -8,6 +8,7 @@ import { CatalogPage } from './pages/CatalogPage'
 import { ClientsPage } from './pages/ClientsPage'
 import { PurchasesPage } from './pages/PurchasesPage'
 import { KitchenPage } from './pages/KitchenPage'
+import { KitchenBoardPage } from './pages/KitchenBoardPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { ProposalPage } from './pages/ProposalPage'
@@ -22,6 +23,7 @@ export default function App() {
           <Route path="orders" element={<OrdersPage />} />
           <Route path="orders/:id" element={<OrderDetailPage />} />
           <Route path="orders/:id/kitchen" element={<KitchenPage />} />
+          <Route path="kitchen" element={<KitchenBoardPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="catalog" element={<CatalogPage />} />
           <Route path="clients" element={<ClientsPage />} />

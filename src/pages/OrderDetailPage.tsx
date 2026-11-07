@@ -14,7 +14,8 @@ import {
   orderSubtotal,
   orderTotal,
 } from '../lib/format'
-import { fromLocalInput, toLocalInput } from '../lib/datetime'
+import { fromLocalInput, toDateInput, toLocalInput } from '../lib/datetime'
+import { downloadCsv } from '../lib/csv'
 import {
   Button,
   Field,
@@ -36,6 +37,8 @@ export function OrderDetailPage() {
   const contacts = useCrmStore((s) => s.contacts)
   const catalog = useCrmStore((s) => s.catalog)
   const managers = useCrmStore((s) => s.settings.managers)
+  const paymentAccounts = useCrmStore((s) => s.settings.paymentAccounts)
+  const trackPayments = useCrmStore((s) => s.settings.trackPayments)
   const updateOrder = useCrmStore((s) => s.updateOrder)
   const setOrderLines = useCrmStore((s) => s.setOrderLines)
   const addPayment = useCrmStore((s) => s.addPayment)
@@ -47,7 +50,9 @@ export function OrderDetailPage() {
   const [catalogKind, setCatalogKind] = useState<'product' | 'service' | ''>('')
   const [section, setSection] = useState('Меню')
   const [payAmount, setPayAmount] = useState('')
-  const [payMethod, setPayMethod] = useState('Безготівка')
+  const [payMethod, setPayMethod] = useState(
+    () => paymentAccounts?.[0] || 'Безготівка',
+  )
   const [payNote, setPayNote] = useState('')
   const [copied, setCopied] = useState(false)
 
@@ -171,6 +176,29 @@ export function OrderDetailPage() {
             <Link className="btn" to={`/orders/${order.id}/kitchen`}>
               Кухонний лист
             </Link>
+            <Button
+              onClick={() => {
+                downloadCsv(`${order.number}-koshtorys.csv`, [
+                  ['Розділ', 'Позиція', 'К-сть', 'Од.', 'Ціна', 'Собів.', 'Сума'],
+                  ...order.lines.map((l) => [
+                    l.section,
+                    l.name,
+                    l.qty,
+                    l.unit,
+                    l.price,
+                    l.cost,
+                    lineTotal(l),
+                  ]),
+                  [],
+                  ['Підсумок', '', '', '', '', '', orderSubtotal(order)],
+                  ['Знижка %', order.discountPercent],
+                  ['Націнка %', order.markupPercent],
+                  ['Разом', '', '', '', '', '', orderTotal(order)],
+                ])
+              }}
+            >
+              Excel / CSV
+            </Button>
             <Button
               onClick={() => {
                 const id = duplicateOrder(order.id)
@@ -352,6 +380,19 @@ export function OrderDetailPage() {
                 onChange={(e) => patch({ markupPercent: Number(e.target.value) || 0 })}
               />
             </Label>
+            <Label label="Дата виробництва (кухня)">
+              <Field
+                type="date"
+                value={toDateInput(order.productionDate)}
+                onChange={(e) =>
+                  patch({
+                    productionDate: e.target.value
+                      ? fromLocalInput(`${e.target.value}T10:00`)
+                      : undefined,
+                  })
+                }
+              />
+            </Label>
           </div>
           <div className="grid-2" style={{ marginTop: 12 }}>
             <Label label="Нотатки для клієнта / КП">
@@ -371,7 +412,11 @@ export function OrderDetailPage() {
 
         <div className="panel panel-pad">
           <div className="section-title">Платежі</div>
-          {order.payments.length === 0 ? (
+          {!trackPayments ? (
+            <div className="empty" style={{ padding: 16 }}>
+              Облік платежів вимкнено в налаштуваннях
+            </div>
+          ) : order.payments.length === 0 ? (
             <div className="empty" style={{ padding: 16 }}>
               Платежів ще немає
             </div>
@@ -381,7 +426,7 @@ export function OrderDetailPage() {
                 <thead>
                   <tr>
                     <th>Дата</th>
-                    <th>Метод</th>
+                    <th>Рахунок</th>
                     <th>Сума</th>
                     <th></th>
                   </tr>
@@ -414,45 +459,53 @@ export function OrderDetailPage() {
               </table>
             </div>
           )}
-          <div className="grid-2" style={{ marginTop: 12 }}>
-            <Label label="Сума">
-              <Field
-                type="number"
-                value={payAmount}
-                onChange={(e) => setPayAmount(e.target.value)}
-                placeholder={String(Math.round(due) || '')}
-              />
-            </Label>
-            <Label label="Метод">
-              <Select value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
-                <option>Безготівка</option>
-                <option>Картка</option>
-                <option>Готівка</option>
-                <option>LiqPay / онлайн</option>
-              </Select>
-            </Label>
-          </div>
-          <Label label="Коментар">
-            <Field value={payNote} onChange={(e) => setPayNote(e.target.value)} />
-          </Label>
-          <Button
-            variant="primary"
-            style={{ marginTop: 8 }}
-            onClick={() => {
-              const amount = Number(payAmount)
-              if (!amount || amount <= 0) return
-              addPayment(order.id, {
-                amount,
-                method: payMethod,
-                paidAt: new Date().toISOString(),
-                note: payNote || undefined,
-              })
-              setPayAmount('')
-              setPayNote('')
-            }}
-          >
-            Додати платіж
-          </Button>
+          {trackPayments ? (
+            <>
+              <div className="grid-2" style={{ marginTop: 12 }}>
+                <Label label="Сума">
+                  <Field
+                    type="number"
+                    value={payAmount}
+                    onChange={(e) => setPayAmount(e.target.value)}
+                    placeholder={String(Math.round(due) || '')}
+                  />
+                </Label>
+                <Label label="Рахунок / метод">
+                  <Select value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
+                    {(paymentAccounts?.length
+                      ? paymentAccounts
+                      : ['Безготівка', 'Готівка', 'Термінал']
+                    ).map((a) => (
+                      <option key={a} value={a}>
+                        {a}
+                      </option>
+                    ))}
+                  </Select>
+                </Label>
+              </div>
+              <Label label="Коментар">
+                <Field value={payNote} onChange={(e) => setPayNote(e.target.value)} />
+              </Label>
+              <Button
+                variant="primary"
+                style={{ marginTop: 8 }}
+                onClick={() => {
+                  const amount = Number(payAmount)
+                  if (!amount || amount <= 0) return
+                  addPayment(order.id, {
+                    amount,
+                    method: payMethod,
+                    paidAt: new Date().toISOString(),
+                    note: payNote || undefined,
+                  })
+                  setPayAmount('')
+                  setPayNote('')
+                }}
+              >
+                Додати платіж
+              </Button>
+            </>
+          ) : null}
           {order.published ? (
             <div style={{ marginTop: 14, fontSize: 13 }} className="muted">
               Публічне КП:{' '}

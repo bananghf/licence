@@ -14,6 +14,7 @@ import {
   Select,
 } from '../components/ui'
 import type { Purchase, PurchaseItem, PurchaseStatus } from '../types'
+import { downloadCsv } from '../lib/csv'
 
 export function PurchasesPage() {
   const purchases = useCrmStore((s) => s.purchases)
@@ -142,6 +143,26 @@ export function PurchasesPage() {
                       </Button>
                       <Button
                         size="sm"
+                        variant="ghost"
+                        onClick={() =>
+                          downloadCsv(`${p.title.replace(/\s+/g, '_')}.csv`, [
+                            ['Назва', 'К-сть', 'Од.', 'Ціна', 'Сума'],
+                            ...p.items.map((i) => [
+                              i.name,
+                              i.qty,
+                              i.unit,
+                              i.price,
+                              i.qty * i.price,
+                            ]),
+                            [],
+                            ['Разом', '', '', '', purchaseTotal(p)],
+                          ])
+                        }
+                      >
+                        CSV
+                      </Button>
+                      <Button
+                        size="sm"
                         variant="danger"
                         onClick={() => {
                           if (confirm('Видалити закупку?')) deletePurchase(p.id)
@@ -189,8 +210,9 @@ export function PurchasesPage() {
           }
         >
           <p className="muted" style={{ fontSize: 13 }}>
-            Система збере інгредієнти з підтверджених позицій меню (евристика за тегами /
-            категоріями). Далі можна відредагувати кількості.
+            Система збере інгредієнти за ТТК (складом страв) × кількість порцій у сметах.
+            Якщо ТТК порожня — використовується евристика за тегами. Далі можна
+            відредагувати кількості.
           </p>
           <div style={{ display: 'grid', gap: 8, maxHeight: 360, overflow: 'auto' }}>
             {openOrders.map((o) => {

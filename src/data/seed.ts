@@ -106,6 +106,109 @@ const catalog = [...products, ...services, ...ingredients]
 
 const findCat = (name: string) => catalog.find((c) => c.name === name)!
 
+/** Demo ТТК: qty of ingredient per 1 portion of the dish. */
+function setComposition(dish: string, lines: [string, number][]) {
+  const product = findCat(dish)
+  product.composition = lines.map(([ing, qty]) => ({
+    ingredientId: findCat(ing).id,
+    qty,
+  }))
+}
+
+setComposition('Канапе з лососем', [
+  ['Лосось свіжий', 0.035],
+  ['Хліб багет', 0.15],
+  ['Олія оливкова', 0.005],
+])
+setComposition('Брускети з томатами', [
+  ['Помідори чері', 0.04],
+  ['Хліб багет', 0.2],
+  ['Олія оливкова', 0.008],
+])
+setComposition('Сирна тарілка', [
+  ['Сир моцарела', 0.15],
+  ['Сир пармезан', 0.08],
+])
+setComposition('Мʼясна тарілка', [
+  ['Куряче філе', 0.2],
+  ['Індичка', 0.15],
+])
+setComposition('Цезар з куркою', [
+  ['Куряче філе', 0.08],
+  ['Салат айсберг', 0.06],
+  ['Сир пармезан', 0.015],
+])
+setComposition('Грецький салат', [
+  ['Помідори чері', 0.08],
+  ['Сир моцарела', 0.04],
+  ['Олія оливкова', 0.01],
+])
+setComposition('Борщ український', [
+  ['Картопля', 0.08],
+  ['Куряче філе', 0.03],
+])
+setComposition('Крем-суп з грибів', [
+  ['Гриби печериці', 0.1],
+  ['Вершки 33%', 0.04],
+  ['Картопля', 0.04],
+])
+setComposition('Стейк з індички', [
+  ['Індичка', 0.22],
+  ['Олія оливкова', 0.01],
+])
+setComposition('Філе судака', [
+  ['Судак', 0.2],
+  ['Лимони', 0.02],
+  ['Олія оливкова', 0.008],
+])
+setComposition('Ризото з овочами', [
+  ['Рис арборіо', 0.08],
+  ['Гриби печериці', 0.04],
+  ['Сир пармезан', 0.02],
+])
+setComposition('Картопля гратен', [
+  ['Картопля', 0.2],
+  ['Вершки 33%', 0.05],
+  ['Сир моцарела', 0.03],
+])
+setComposition('Овочі гриль', [
+  ['Помідори чері', 0.06],
+  ['Олія оливкова', 0.01],
+])
+setComposition('Тірамісу', [
+  ['Вершки 33%', 0.05],
+  ['Цукор', 0.02],
+  ['Кава зернова', 0.005],
+])
+setComposition('Чізкейк', [
+  ['Сир моцарела', 0.08],
+  ['Вершки 33%', 0.04],
+  ['Цукор', 0.025],
+  ['Ягоди мікс', 0.03],
+])
+setComposition('Фруктова тарілка', [
+  ['Ягоди мікс', 0.25],
+  ['Лимони', 0.05],
+])
+setComposition('Кава / чай сет', [
+  ['Кава зернова', 0.012],
+  ['Цукор', 0.01],
+])
+setComposition('Лимонад домашній', [
+  ['Лимони', 0.12],
+  ['Цукор', 0.08],
+])
+setComposition('Ланч-бокс «Офіс»', [
+  ['Куряче філе', 0.12],
+  ['Салат айсберг', 0.05],
+  ['Картопля', 0.15],
+])
+setComposition('Ланч-бокс «Бізнес»', [
+  ['Індичка', 0.15],
+  ['Рис арборіо', 0.08],
+  ['Салат айсберг', 0.05],
+])
+
 function line(
   item: CatalogItem,
   qty: number,
@@ -168,6 +271,7 @@ const orders: Order[] = [
     ],
     notes: 'Потрібні мікрофони та проектор — надає зал.',
     kitchenNotes: '2 гості — без глютену. 1 — вегетаріанець.',
+    productionDate: daysFromNow(5, 10),
     published: true,
     createdAt: daysFromNow(-14),
     updatedAt: daysFromNow(-1),
@@ -547,6 +651,8 @@ export function createSeedState(): CrmState {
       currency: '₴',
       timezone: 'Europe/Kyiv',
       managers,
+      paymentAccounts: ['Безготівка', 'Готівка', 'Термінал', 'LiqPay'],
+      trackPayments: true,
       serviceTypes: [
         { id: 'banquet', label: 'Банкет' },
         { id: 'buffet', label: 'Фуршет' },

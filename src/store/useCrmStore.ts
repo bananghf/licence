@@ -181,6 +181,7 @@ export const useCrmStore = create<CrmStore>()(
                 cost: item.cost ?? 0,
                 description: item.description,
                 tags: item.tags || [],
+                composition: item.composition || [],
                 active: item.active ?? true,
               },
             ],
@@ -327,6 +328,23 @@ export const useCrmStore = create<CrmStore>()(
           { ingredientId?: string; name: string; unit: string; qty: number; price: number }
         >()
 
+        const addIng = (
+          key: string,
+          data: {
+            ingredientId?: string
+            name: string
+            unit: string
+            qty: number
+            price: number
+          },
+        ) => {
+          const prev = ingredientMap.get(key)
+          ingredientMap.set(key, {
+            ...data,
+            qty: Math.round(((prev?.qty || 0) + data.qty) * 1000) / 1000,
+          })
+        }
+
         for (const order of selected) {
           for (const line of order.lines) {
             if (line.kind !== 'product' && line.kind !== 'ingredient') continue
@@ -335,19 +353,34 @@ export const useCrmStore = create<CrmStore>()(
               : undefined
 
             if (line.kind === 'ingredient') {
-              const key = line.catalogItemId || line.name
-              const prev = ingredientMap.get(key)
-              ingredientMap.set(key, {
+              addIng(line.catalogItemId || line.name, {
                 ingredientId: line.catalogItemId,
                 name: line.name,
                 unit: line.unit,
-                qty: (prev?.qty || 0) + line.qty,
+                qty: line.qty,
                 price: line.cost || catalogItem?.cost || 0,
               })
               continue
             }
 
-            // Heuristic: product lines pull matching ingredient categories by tags/name tokens
+            // Prefer ТТК (composition) from catalog product
+            const bom = catalogItem?.composition?.filter((c) => c.qty > 0) || []
+            if (bom.length > 0) {
+              for (const row of bom) {
+                const ing = state.catalog.find((c) => c.id === row.ingredientId)
+                if (!ing) continue
+                addIng(ing.id, {
+                  ingredientId: ing.id,
+                  name: ing.name,
+                  unit: ing.unit,
+                  qty: row.qty * line.qty,
+                  price: ing.cost,
+                })
+              }
+              continue
+            }
+
+            // Fallback heuristic when ТТК is empty: tags / category match
             if (catalogItem) {
               const related = state.catalog.filter(
                 (c) =>
@@ -357,12 +390,11 @@ export const useCrmStore = create<CrmStore>()(
               )
               const share = Math.max(line.qty * 0.05, 0.2)
               for (const ing of related.slice(0, 3)) {
-                const prev = ingredientMap.get(ing.id)
-                ingredientMap.set(ing.id, {
+                addIng(ing.id, {
                   ingredientId: ing.id,
                   name: ing.name,
                   unit: ing.unit,
-                  qty: Math.round(((prev?.qty || 0) + share) * 10) / 10,
+                  qty: share,
                   price: ing.cost,
                 })
               }
@@ -370,13 +402,12 @@ export const useCrmStore = create<CrmStore>()(
           }
         }
 
-        // Fallback: if empty, pull top used ingredients
         if (ingredientMap.size === 0) {
           state.catalog
             .filter((c) => c.kind === 'ingredient')
             .slice(0, 8)
             .forEach((ing) => {
-              ingredientMap.set(ing.id, {
+              addIng(ing.id, {
                 ingredientId: ing.id,
                 name: ing.name,
                 unit: ing.unit,
@@ -386,10 +417,12 @@ export const useCrmStore = create<CrmStore>()(
             })
         }
 
-        const items = [...ingredientMap.values()].map((item) => ({
-          id: nanoid(8),
-          ...item,
-        }))
+        const items = [...ingredientMap.values()]
+          .sort((a, b) => a.name.localeCompare(b.name, 'uk'))
+          .map((item) => ({
+            id: nanoid(8),
+            ...item,
+          }))
 
         const id = nanoid(8)
         const purchase: Purchase = {
@@ -434,7 +467,27 @@ export const useCrmStore = create<CrmStore>()(
         })),
     }),
     {
-      name: 'shastya-crm-v1',
+      name: 'shastya-crm-v2',
+      merge: (persisted, current) => {
+        const p = (persisted || {}) as Partial<CrmState>
+        const settings = {
+          ...current.settings,
+          ...(p.settings || {}),
+          paymentAccounts:
+            p.settings?.paymentAccounts || current.settings.paymentAccounts,
+          trackPayments:
+            p.settings?.trackPayments ?? current.settings.trackPayments,
+        }
+        return {
+          ...current,
+          ...p,
+          settings,
+          catalog: (p.catalog || current.catalog).map((item) => ({
+            ...item,
+            composition: item.composition || [],
+          })),
+        }
+      },
     },
   ),
 )
