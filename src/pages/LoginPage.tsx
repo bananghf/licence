@@ -33,8 +33,7 @@ export function LoginPage() {
 
         <h1 style={{ fontSize: 22, margin: '18px 0 6px' }}>Вхід</h1>
         <p className="muted" style={{ fontSize: 13, marginBottom: 16 }}>
-          Дані зберігаються в локальній SQLite на сервері. Демо-обліковка вже
-          засіяна.
+          Дані на сервері (SQLite). Увійдіть, щоб відкрити панель.
         </p>
 
         <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12 }}>

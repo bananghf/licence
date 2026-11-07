@@ -17,13 +17,30 @@ npm install
 npm run dev
 ```
 
-Відкрийте **http://localhost:5173**
+Відкрийте **http://localhost:5173** — спочатку має з’явитись екран **Вхід** (`/login`).
 
 - UI (Vite): `http://localhost:5173`
 - API (Express): `http://localhost:8787`
 - База: файл `data/shastya.sqlite` (створюється автоматично)
 
 `npm run dev` піднімає **API + фронт разом** (concurrently).
+
+### Якщо вже клонували раніше (Mac)
+
+Старий MVP зберігав дані лише в `localStorage` і **не мав логіну** (футер «Дані зберігаються локально»). Потрібна гілка з auth:
+
+```bash
+cd licence
+# зупиніть старий Vite/Node (Ctrl+C у терміналі або):
+# pkill -f "vite" ; pkill -f "tsx watch server"
+git fetch origin
+git checkout cursor/caiter-crm-panel-646b
+git pull origin cursor/caiter-crm-panel-646b
+npm install
+npm run dev
+```
+
+Відкрийте `http://localhost:5173` (hard refresh: Cmd+Shift+R). Має бути форма входу, не одразу дашборд.
 
 ### Облікові записи (seed)
 

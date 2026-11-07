@@ -1,4 +1,6 @@
 const TOKEN_KEY = 'shastya-crm-token'
+/** Legacy Zustand persist key from the pre-auth localStorage MVP */
+const LEGACY_PERSIST_KEY = 'shastya-crm-v2'
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY)
@@ -7,6 +9,15 @@ export function getToken(): string | null {
 export function setToken(token: string | null) {
   if (token) localStorage.setItem(TOKEN_KEY, token)
   else localStorage.removeItem(TOKEN_KEY)
+}
+
+/** Drop browser-only MVP data so upgraded clients never mix sources. */
+export function clearLegacyClientStore() {
+  try {
+    localStorage.removeItem(LEGACY_PERSIST_KEY)
+  } catch {
+    /* ignore */
+  }
 }
 
 export class ApiError extends Error {

@@ -11,7 +11,7 @@ import type {
   EstimateLine,
   Payment,
 } from '../types'
-import { api, setToken, getToken } from '../lib/api'
+import { api, setToken, getToken, clearLegacyClientStore } from '../lib/api'
 import { createSeedState } from '../data/seed'
 
 export interface AuthUser {
@@ -113,6 +113,7 @@ export const useCrmStore = create<CrmStore>()((set, get) => ({
   authError: null,
 
   bootstrap: async () => {
+    clearLegacyClientStore()
     set({ loading: true, authError: null })
     try {
       if (!getToken()) {
