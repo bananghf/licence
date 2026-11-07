@@ -25,6 +25,8 @@ const mobileNav = [
 
 export function Layout() {
   const settings = useCrmStore((s) => s.settings)
+  const authUser = useCrmStore((s) => s.authUser)
+  const logout = useCrmStore((s) => s.logout)
   const [searchOpen, setSearchOpen] = useState(false)
   const navigate = useNavigate()
 
@@ -63,9 +65,24 @@ export function Layout() {
           ))}
         </nav>
         <div className="sidebar-foot">
-          Кейтеринг CRM · Вінниця
-          <br />
-          Дані зберігаються локально
+          {authUser ? (
+            <>
+              {authUser.name} · {authUser.role}
+              <br />
+            </>
+          ) : null}
+          SQLite + API · Вінниця
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            style={{ marginTop: 8, width: '100%' }}
+            onClick={async () => {
+              await logout()
+              navigate('/login')
+            }}
+          >
+            Вийти
+          </button>
         </div>
       </aside>
 

@@ -210,15 +210,19 @@ export function SettingsPage() {
             Дані
           </div>
           <p className="muted" style={{ fontSize: 13, marginBottom: 10 }}>
-            Усі дані зберігаються в localStorage браузера (ключ shastya-crm-v2). Можна
-            скинути до демо «Щастя» з ТТК страв.
+            Дані зберігаються в SQLite на сервері (`data/shastya.sqlite`). Скидання
+            доступне адміністратору і відновлює демо з ТТК страв.
           </p>
           <Button
             variant="danger"
-            onClick={() => {
+            onClick={async () => {
               if (confirm('Скинути всі дані до демо-набору?')) {
-                resetDemo()
-                flash()
+                try {
+                  await resetDemo()
+                  flash()
+                } catch {
+                  alert('Скидання доступне лише адміністратору')
+                }
               }
             }}
           >

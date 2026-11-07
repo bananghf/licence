@@ -1,6 +1,5 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useCrmStore } from '../store/useCrmStore'
 import {
   formatDateTime,
   lineTotal,
@@ -9,14 +8,51 @@ import {
   orderTotal,
 } from '../lib/format'
 import { SERVICE_LABELS } from '../lib/labels'
-import type { EstimateLine } from '../types'
+import type { AppSettings, Company, Contact, EstimateLine, Order } from '../types'
+import { api } from '../lib/api'
+
+interface ProposalPayload {
+  order: Order
+  settings: AppSettings
+  company: Company | null
+  contact: Contact | null
+}
 
 export function ProposalPage() {
   const { id } = useParams()
-  const order = useCrmStore((s) => s.orders.find((o) => o.id === id))
-  const settings = useCrmStore((s) => s.settings)
-  const companies = useCrmStore((s) => s.companies)
-  const contacts = useCrmStore((s) => s.contacts)
+  const [data, setData] = useState<ProposalPayload | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!id) return
+    let cancelled = false
+    setLoading(true)
+    api<ProposalPayload>(`/public/proposals/${id}`)
+      .then((payload) => {
+        if (!cancelled) {
+          setData(payload)
+          setError(null)
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setData(null)
+          setError(err instanceof Error ? err.message : 'Не знайдено')
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id])
+
+  const order = data?.order
+  const settings = data?.settings
+  const company = data?.company
+  const contact = data?.contact
 
   const grouped = useMemo(() => {
     if (!order) return [] as { section: string; lines: EstimateLine[]; sum: number }[]
@@ -33,30 +69,27 @@ export function ProposalPage() {
     }))
   }, [order])
 
-  if (!order) {
+  if (loading) {
     return (
       <div className="proposal">
         <div className="proposal-card">
-          <div className="proposal-body">
-            <div className="empty">Пропозицію не знайдено</div>
-          </div>
+          <div className="proposal-body muted">Завантаження КП…</div>
         </div>
       </div>
     )
   }
 
-  if (!order.published) {
+  if (!order || !settings) {
     return (
       <div className="proposal">
         <div className="proposal-card">
-          <div className="proposal-hero">
-            <div style={{ opacity: 0.85, fontSize: 13 }}>{settings.companyName}</div>
-            <h1>КП ще не опубліковано</h1>
-            <p>Менеджер готує комерційну пропозицію. Завітайте пізніше.</p>
-          </div>
           <div className="proposal-body">
-            <Link className="btn" to={`/orders/${order.id}`}>
-              Відкрити в CRM
+            <h1>КП недоступне</h1>
+            <p className="muted">
+              {error || 'Замовлення не опубліковане або не існує.'}
+            </p>
+            <Link to="/login" className="btn btn-primary" style={{ marginTop: 12 }}>
+              Увійти в CRM
             </Link>
           </div>
         </div>
@@ -64,135 +97,131 @@ export function ProposalPage() {
     )
   }
 
-  const company = companies.find((c) => c.id === order.companyId)
-  const contact = contacts.find((c) => c.id === order.contactId)
   const subtotal = orderSubtotal(order)
   const total = orderTotal(order)
-  const perGuest = order.guests > 0 ? total / order.guests : 0
 
   return (
     <div className="proposal">
       <div className="proposal-card">
-        <div className="proposal-hero">
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              gap: 12,
-              flexWrap: 'wrap',
-            }}
-          >
-            <div>
-              <div style={{ opacity: 0.85, fontSize: 13, letterSpacing: '0.08em' }}>
-                {settings.logoText.toUpperCase()}
-              </div>
-              <h1>Комерційна пропозиція</h1>
-              <p style={{ opacity: 0.9, maxWidth: 520 }}>
-                {order.title} · {SERVICE_LABELS[order.serviceType]}
-              </p>
+        <div className="proposal-head">
+          <div>
+            <div style={{ fontSize: 13, opacity: 0.85 }}>{settings.logoText}</div>
+            <div style={{ fontSize: 28, fontWeight: 800, marginTop: 4 }}>
+              {settings.companyName}
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 13, opacity: 0.8 }}>№ {order.number}</div>
-              <div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>{money(total)}</div>
-              <div style={{ fontSize: 13, opacity: 0.8 }}>
-                {order.guests} гостей · {money(perGuest)} / гість
-              </div>
+            <div style={{ marginTop: 8, opacity: 0.9 }}>Комерційна пропозиція</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 13, opacity: 0.85 }}>{order.number}</div>
+            <div style={{ fontSize: 28, fontWeight: 800, marginTop: 6 }}>
+              {money(total, settings.currency)}
             </div>
           </div>
         </div>
 
         <div className="proposal-body">
+          <h1 style={{ marginTop: 0 }}>{order.title}</h1>
+
           <div className="grid-3" style={{ marginBottom: 22 }}>
             <div>
               <div className="muted" style={{ fontSize: 12 }}>
-                Дата події
+                Подія
               </div>
-              <strong>{formatDateTime(order.eventStart)}</strong>
-              {order.eventEnd ? (
-                <div className="muted" style={{ fontSize: 13 }}>
-                  до {formatDateTime(order.eventEnd)}
-                </div>
-              ) : null}
-            </div>
-            <div>
-              <div className="muted" style={{ fontSize: 12 }}>
-                Локація
+              <div>{formatDateTime(order.eventStart)}</div>
+              <div className="muted" style={{ fontSize: 13 }}>
+                {SERVICE_LABELS[order.serviceType]} · {order.guests} гостей
               </div>
-              <strong>{order.address || 'Узгоджується'}</strong>
             </div>
             <div>
               <div className="muted" style={{ fontSize: 12 }}>
                 Клієнт
               </div>
-              <strong>{company?.name || contact?.name || '—'}</strong>
-              {contact ? (
-                <div className="muted" style={{ fontSize: 13 }}>
-                  {contact.name}
-                  {contact.phone ? ` · ${contact.phone}` : ''}
-                </div>
-              ) : null}
+              <div>{company?.name || contact?.name || '—'}</div>
+              <div className="muted" style={{ fontSize: 13 }}>
+                {contact?.phone || company?.phone || ''}
+              </div>
+            </div>
+            <div>
+              <div className="muted" style={{ fontSize: 12 }}>
+                Адреса
+              </div>
+              <div>{order.address || '—'}</div>
             </div>
           </div>
 
           {grouped.map((g) => (
             <div key={g.section} style={{ marginBottom: 20 }}>
-              <div
+              <h2
                 style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginBottom: 8,
+                  fontSize: 15,
                   borderBottom: '1px solid var(--line)',
                   paddingBottom: 6,
+                  marginBottom: 8,
                 }}
               >
-                <strong style={{ color: 'var(--brand)' }}>{g.section}</strong>
-                <span className="muted">{money(g.sum)}</span>
-              </div>
+                {g.section}
+              </h2>
               <table className="data">
+                <thead>
+                  <tr>
+                    <th>Позиція</th>
+                    <th>К-сть</th>
+                    <th>Ціна</th>
+                    <th>Сума</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {g.lines.map((line) => (
                     <tr key={line.id}>
+                      <td>{line.name}</td>
                       <td>
-                        <strong>{line.name}</strong>
-                        <div className="muted" style={{ fontSize: 12 }}>
-                          {line.qty} {line.unit} × {money(line.price)}
-                        </div>
+                        {line.qty} {line.unit}
                       </td>
-                      <td style={{ textAlign: 'right', fontWeight: 650 }}>
-                        {money(lineTotal(line))}
-                      </td>
+                      <td>{money(line.price, settings.currency)}</td>
+                      <td>{money(lineTotal(line), settings.currency)}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  marginTop: 8,
+                  fontWeight: 600,
+                }}
+              >
+                {money(g.sum, settings.currency)}
+              </div>
             </div>
           ))}
 
           <div
             style={{
               marginTop: 8,
-              padding: 16,
-              borderRadius: 14,
-              background: 'var(--bg)',
+              borderTop: '2px solid var(--brand)',
+              paddingTop: 12,
               display: 'grid',
-              gap: 8,
+              gap: 6,
+              maxWidth: 320,
+              marginLeft: 'auto',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span className="muted">Підсумок</span>
-              <span>{money(subtotal)}</span>
+              <span>Підсумок</span>
+              <span>{money(subtotal, settings.currency)}</span>
             </div>
-            {order.markupPercent ? (
+            {order.markupPercent > 0 ? (
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span className="muted">Націнка {order.markupPercent}%</span>
+                <span>Націнка {order.markupPercent}%</span>
                 <span>
-                  +{money(subtotal * (order.markupPercent / 100))}
+                  +{money(subtotal * (order.markupPercent / 100), settings.currency)}
                 </span>
               </div>
             ) : null}
-            {order.discountPercent ? (
+            {order.discountPercent > 0 ? (
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span className="muted">Знижка {order.discountPercent}%</span>
+                <span>Знижка {order.discountPercent}%</span>
                 <span>−{order.discountPercent}%</span>
               </div>
             ) : null}
@@ -200,44 +229,33 @@ export function ProposalPage() {
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                fontSize: 20,
+                fontSize: 18,
                 fontWeight: 800,
-                borderTop: '1px solid var(--line)',
-                paddingTop: 10,
               }}
             >
-              <span>Разом до сплати</span>
-              <span>{money(total)}</span>
+              <span>Разом</span>
+              <span>{money(total, settings.currency)}</span>
             </div>
           </div>
 
           {order.notes ? (
             <div style={{ marginTop: 18 }}>
-              <div className="section-title">Умови та примітки</div>
-              <p style={{ whiteSpace: 'pre-wrap', color: 'var(--ink-soft)' }}>{order.notes}</p>
+              <div className="muted" style={{ fontSize: 12 }}>
+                Примітки
+              </div>
+              <div>{order.notes}</div>
             </div>
           ) : null}
 
           <div
+            className="muted"
             style={{
               marginTop: 28,
-              paddingTop: 16,
-              borderTop: '1px solid var(--line)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              gap: 12,
-              flexWrap: 'wrap',
-              fontSize: 13,
-              color: 'var(--muted)',
+              fontSize: 12,
+              textAlign: 'center',
             }}
           >
-            <div>
-              <strong style={{ color: 'var(--ink)' }}>{settings.companyName}</strong>
-              <div>Менеджер: {order.manager}</div>
-            </div>
-            <button type="button" className="btn no-print" onClick={() => window.print()}>
-              Друкувати / PDF
-            </button>
+            Підготовлено в {settings.logoText}
           </div>
         </div>
       </div>

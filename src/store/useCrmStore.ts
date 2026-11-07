@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 import { nanoid } from 'nanoid'
 import type {
   CatalogItem,
@@ -12,10 +11,26 @@ import type {
   EstimateLine,
   Payment,
 } from '../types'
+import { api, setToken, getToken } from '../lib/api'
 import { createSeedState } from '../data/seed'
 
+export interface AuthUser {
+  id: string
+  email: string
+  name: string
+  role: 'admin' | 'manager'
+}
+
 interface CrmActions {
-  resetDemo: () => void
+  hydrated: boolean
+  loading: boolean
+  authUser: AuthUser | null
+  authError: string | null
+
+  bootstrap: () => Promise<void>
+  login: (email: string, password: string) => Promise<boolean>
+  logout: () => Promise<void>
+  resetDemo: () => Promise<void>
 
   upsertCompany: (company: Partial<Company> & { name: string }) => string
   deleteCompany: (id: string) => void
@@ -23,7 +38,9 @@ interface CrmActions {
   upsertContact: (contact: Partial<Contact> & { name: string }) => string
   deleteContact: (id: string) => void
 
-  upsertCatalogItem: (item: Partial<CatalogItem> & { name: string; kind: CatalogItem['kind'] }) => string
+  upsertCatalogItem: (
+    item: Partial<CatalogItem> & { name: string; kind: CatalogItem['kind'] },
+  ) => string
   deleteCatalogItem: (id: string) => void
 
   createOrder: (partial?: Partial<Order>) => string
@@ -45,6 +62,16 @@ interface CrmActions {
 }
 
 export type CrmStore = CrmState & CrmActions
+
+const emptySettings = createSeedState().settings
+
+function nextOrderNumber(orders: Order[]): string {
+  const nums = orders
+    .map((o) => parseInt(o.number.replace(/\D/g, ''), 10))
+    .filter((n) => !Number.isNaN(n))
+  const max = nums.length ? Math.max(...nums) : 1000
+  return `З-${max + 1}`
+}
 
 const blankOrder = (managers: string[], nextNumber: string): Order => {
   const now = new Date().toISOString()
@@ -69,425 +96,469 @@ const blankOrder = (managers: string[], nextNumber: string): Order => {
   }
 }
 
-function nextOrderNumber(orders: Order[]): string {
-  const nums = orders
-    .map((o) => parseInt(o.number.replace(/\D/g, ''), 10))
-    .filter((n) => !Number.isNaN(n))
-  const max = nums.length ? Math.max(...nums) : 1000
-  return `З-${max + 1}`
+async function syncFail(label: string, err: unknown) {
+  console.error(`[CRM API] ${label}`, err)
 }
 
-export const useCrmStore = create<CrmStore>()(
-  persist(
-    (set, get) => ({
-      ...createSeedState(),
+export const useCrmStore = create<CrmStore>()((set, get) => ({
+  companies: [],
+  contacts: [],
+  catalog: [],
+  orders: [],
+  purchases: [],
+  settings: emptySettings,
+  hydrated: false,
+  loading: false,
+  authUser: null,
+  authError: null,
 
-      resetDemo: () => set(createSeedState()),
+  bootstrap: async () => {
+    set({ loading: true, authError: null })
+    try {
+      if (!getToken()) {
+        set({ hydrated: true, loading: false, authUser: null })
+        return
+      }
+      const me = await api<{ user: AuthUser }>('/auth/me')
+      const state = await api<CrmState>('/bootstrap')
+      set({
+        ...state,
+        authUser: me.user,
+        hydrated: true,
+        loading: false,
+      })
+    } catch (err) {
+      setToken(null)
+      set({
+        authUser: null,
+        hydrated: true,
+        loading: false,
+        authError:
+          err instanceof Error ? err.message : 'Не вдалося увійти в сесію',
+      })
+    }
+  },
 
-      upsertCompany: (company) => {
-        const id = company.id || nanoid(8)
-        set((state) => {
-          const existing = state.companies.find((c) => c.id === id)
-          if (existing) {
-            return {
-              companies: state.companies.map((c) =>
-                c.id === id ? { ...c, ...company, id } : c,
-              ),
-            }
-          }
-          return {
-            companies: [
-              ...state.companies,
-              {
-                id,
-                name: company.name,
-                inn: company.inn,
-                phone: company.phone,
-                email: company.email,
-                address: company.address,
-                notes: company.notes,
-                createdAt: new Date().toISOString(),
-              },
-            ],
-          }
-        })
-        return id
-      },
+  login: async (email, password) => {
+    set({ loading: true, authError: null })
+    try {
+      const result = await api<{ token: string; user: AuthUser }>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      })
+      setToken(result.token)
+      const state = await api<CrmState>('/bootstrap')
+      set({
+        ...state,
+        authUser: result.user,
+        hydrated: true,
+        loading: false,
+        authError: null,
+      })
+      return true
+    } catch (err) {
+      set({
+        loading: false,
+        authError: err instanceof Error ? err.message : 'Помилка входу',
+      })
+      return false
+    }
+  },
 
-      deleteCompany: (id) =>
-        set((state) => ({
-          companies: state.companies.filter((c) => c.id !== id),
-          contacts: state.contacts.map((c) =>
-            c.companyId === id ? { ...c, companyId: undefined } : c,
-          ),
-        })),
+  logout: async () => {
+    try {
+      await api('/auth/logout', { method: 'POST' })
+    } catch {
+      /* ignore */
+    }
+    setToken(null)
+    set({
+      authUser: null,
+      companies: [],
+      contacts: [],
+      catalog: [],
+      orders: [],
+      purchases: [],
+      settings: emptySettings,
+    })
+  },
 
-      upsertContact: (contact) => {
-        const id = contact.id || nanoid(8)
-        set((state) => {
-          const existing = state.contacts.find((c) => c.id === id)
-          if (existing) {
-            return {
-              contacts: state.contacts.map((c) =>
-                c.id === id ? { ...c, ...contact, id } : c,
-              ),
-            }
-          }
-          return {
-            contacts: [
-              ...state.contacts,
-              {
-                id,
-                name: contact.name,
-                phone: contact.phone,
-                email: contact.email,
-                position: contact.position,
-                companyId: contact.companyId,
-                notes: contact.notes,
-                createdAt: new Date().toISOString(),
-              },
-            ],
-          }
-        })
-        return id
-      },
+  resetDemo: async () => {
+    try {
+      const state = await api<CrmState>('/settings/reset-demo', {
+        method: 'POST',
+      })
+      set({ ...state })
+    } catch (err) {
+      await syncFail('resetDemo', err)
+      throw err
+    }
+  },
 
-      deleteContact: (id) =>
-        set((state) => ({
-          contacts: state.contacts.filter((c) => c.id !== id),
-        })),
-
-      upsertCatalogItem: (item) => {
-        const id = item.id || nanoid(8)
-        set((state) => {
-          const existing = state.catalog.find((c) => c.id === id)
-          if (existing) {
-            return {
-              catalog: state.catalog.map((c) =>
-                c.id === id ? { ...c, ...item, id } : c,
-              ),
-            }
-          }
-          return {
-            catalog: [
-              ...state.catalog,
-              {
-                id,
-                kind: item.kind,
-                name: item.name,
-                category: item.category || 'Інше',
-                unit: item.unit || 'шт.',
-                price: item.price ?? 0,
-                cost: item.cost ?? 0,
-                description: item.description,
-                tags: item.tags || [],
-                composition: item.composition || [],
-                active: item.active ?? true,
-              },
-            ],
-          }
-        })
-        return id
-      },
-
-      deleteCatalogItem: (id) =>
-        set((state) => ({
-          catalog: state.catalog.filter((c) => c.id !== id),
-        })),
-
-      createOrder: (partial) => {
-        const state = get()
-        const order = {
-          ...blankOrder(state.settings.managers, nextOrderNumber(state.orders)),
-          ...partial,
-          id: nanoid(8),
+  upsertCompany: (company) => {
+    const id = company.id || nanoid(8)
+    const existing = get().companies.find((c) => c.id === id)
+    const next: Company = existing
+      ? { ...existing, ...company, id }
+      : {
+          id,
+          name: company.name,
+          inn: company.inn,
+          phone: company.phone,
+          email: company.email,
+          address: company.address,
+          notes: company.notes,
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
         }
-        set({ orders: [order, ...state.orders] })
-        return order.id
-      },
+    set((state) => ({
+      companies: existing
+        ? state.companies.map((c) => (c.id === id ? next : c))
+        : [...state.companies, next],
+    }))
+    if (existing) {
+      void api(`/companies/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(next),
+      }).catch((e) => syncFail('upsertCompany', e))
+    } else {
+      void api('/companies', {
+        method: 'POST',
+        body: JSON.stringify(next),
+      }).catch((e) => syncFail('upsertCompany', e))
+    }
+    return id
+  },
 
-      updateOrder: (id, patch) =>
-        set((state) => ({
-          orders: state.orders.map((o) =>
-            o.id === id
-              ? { ...o, ...patch, id, updatedAt: new Date().toISOString() }
-              : o,
-          ),
-        })),
+  deleteCompany: (id) => {
+    set((state) => ({
+      companies: state.companies.filter((c) => c.id !== id),
+      contacts: state.contacts.map((c) =>
+        c.companyId === id ? { ...c, companyId: undefined } : c,
+      ),
+    }))
+    void api(`/companies/${id}`, { method: 'DELETE' }).catch((e) =>
+      syncFail('deleteCompany', e),
+    )
+  },
 
-      deleteOrder: (id) =>
-        set((state) => ({
-          orders: state.orders.filter((o) => o.id !== id),
-        })),
-
-      duplicateOrder: (id) => {
-        const source = get().orders.find((o) => o.id === id)
-        if (!source) return ''
-        const copy: Order = {
-          ...structuredClone(source),
-          id: nanoid(8),
-          number: nextOrderNumber(get().orders),
-          title: `${source.title} (копія)`,
-          status: 'draft',
-          published: false,
-          payments: [],
-          lines: source.lines.map((l) => ({ ...l, id: nanoid(8) })),
+  upsertContact: (contact) => {
+    const id = contact.id || nanoid(8)
+    const existing = get().contacts.find((c) => c.id === id)
+    const next: Contact = existing
+      ? { ...existing, ...contact, id }
+      : {
+          id,
+          name: contact.name,
+          phone: contact.phone,
+          email: contact.email,
+          position: contact.position,
+          companyId: contact.companyId,
+          notes: contact.notes,
           createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
         }
-        set((state) => ({ orders: [copy, ...state.orders] }))
-        return copy.id
-      },
+    set((state) => ({
+      contacts: existing
+        ? state.contacts.map((c) => (c.id === id ? next : c))
+        : [...state.contacts, next],
+    }))
+    if (existing) {
+      void api(`/contacts/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(next),
+      }).catch((e) => syncFail('upsertContact', e))
+    } else {
+      void api('/contacts', {
+        method: 'POST',
+        body: JSON.stringify(next),
+      }).catch((e) => syncFail('upsertContact', e))
+    }
+    return id
+  },
 
-      setOrderLines: (id, lines) =>
-        set((state) => ({
-          orders: state.orders.map((o) =>
-            o.id === id
-              ? { ...o, lines, updatedAt: new Date().toISOString() }
-              : o,
-          ),
-        })),
+  deleteContact: (id) => {
+    set((state) => ({
+      contacts: state.contacts.filter((c) => c.id !== id),
+    }))
+    void api(`/contacts/${id}`, { method: 'DELETE' }).catch((e) =>
+      syncFail('deleteContact', e),
+    )
+  },
 
-      addPayment: (orderId, payment) =>
-        set((state) => ({
-          orders: state.orders.map((o) =>
-            o.id === orderId
-              ? {
-                  ...o,
-                  payments: [...o.payments, { ...payment, id: nanoid(8) }],
-                  updatedAt: new Date().toISOString(),
-                }
-              : o,
-          ),
-        })),
+  upsertCatalogItem: (item) => {
+    const id = item.id || nanoid(8)
+    const existing = get().catalog.find((c) => c.id === id)
+    const next: CatalogItem = existing
+      ? { ...existing, ...item, id }
+      : {
+          id,
+          kind: item.kind,
+          name: item.name,
+          category: item.category || 'Інше',
+          unit: item.unit || 'шт.',
+          price: item.price ?? 0,
+          cost: item.cost ?? 0,
+          description: item.description,
+          tags: item.tags || [],
+          composition: item.composition || [],
+          active: item.active ?? true,
+        }
+    set((state) => ({
+      catalog: existing
+        ? state.catalog.map((c) => (c.id === id ? next : c))
+        : [...state.catalog, next],
+    }))
+    if (existing) {
+      void api(`/catalog/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(next),
+      }).catch((e) => syncFail('upsertCatalogItem', e))
+    } else {
+      void api('/catalog', {
+        method: 'POST',
+        body: JSON.stringify(next),
+      }).catch((e) => syncFail('upsertCatalogItem', e))
+    }
+    return id
+  },
 
-      removePayment: (orderId, paymentId) =>
-        set((state) => ({
-          orders: state.orders.map((o) =>
-            o.id === orderId
-              ? {
-                  ...o,
-                  payments: o.payments.filter((p) => p.id !== paymentId),
-                  updatedAt: new Date().toISOString(),
-                }
-              : o,
-          ),
-        })),
+  deleteCatalogItem: (id) => {
+    set((state) => ({
+      catalog: state.catalog.filter((c) => c.id !== id),
+    }))
+    void api(`/catalog/${id}`, { method: 'DELETE' }).catch((e) =>
+      syncFail('deleteCatalogItem', e),
+    )
+  },
 
-      upsertPurchase: (purchase) => {
-        const id = purchase.id || nanoid(8)
-        set((state) => {
-          const existing = state.purchases.find((p) => p.id === id)
-          if (existing) {
-            return {
-              purchases: state.purchases.map((p) =>
-                p.id === id ? { ...p, ...purchase, id } : p,
-              ),
+  createOrder: (partial) => {
+    const state = get()
+    const order = {
+      ...blankOrder(state.settings.managers, nextOrderNumber(state.orders)),
+      ...partial,
+      id: partial?.id || nanoid(8),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    set({ orders: [order, ...state.orders] })
+    void api('/orders', {
+      method: 'POST',
+      body: JSON.stringify(order),
+    }).catch((e) => syncFail('createOrder', e))
+    return order.id
+  },
+
+  updateOrder: (id, patch) => {
+    set((state) => ({
+      orders: state.orders.map((o) =>
+        o.id === id
+          ? { ...o, ...patch, id, updatedAt: new Date().toISOString() }
+          : o,
+      ),
+    }))
+    const order = get().orders.find((o) => o.id === id)
+    if (!order) return
+    void api(`/orders/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(order),
+    }).catch((e) => syncFail('updateOrder', e))
+  },
+
+  deleteOrder: (id) => {
+    set((state) => ({
+      orders: state.orders.filter((o) => o.id !== id),
+    }))
+    void api(`/orders/${id}`, { method: 'DELETE' }).catch((e) =>
+      syncFail('deleteOrder', e),
+    )
+  },
+
+  duplicateOrder: (id) => {
+    const source = get().orders.find((o) => o.id === id)
+    if (!source) return ''
+    const copy: Order = {
+      ...structuredClone(source),
+      id: nanoid(8),
+      number: nextOrderNumber(get().orders),
+      title: `${source.title} (копія)`,
+      status: 'draft',
+      published: false,
+      payments: [],
+      lines: source.lines.map((l) => ({ ...l, id: nanoid(8) })),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+    set((state) => ({ orders: [copy, ...state.orders] }))
+    // Persist with the same client id so optimistic navigation stays valid
+    void api('/orders', {
+      method: 'POST',
+      body: JSON.stringify(copy),
+    }).catch((e) => syncFail('duplicateOrder', e))
+    return copy.id
+  },
+
+  setOrderLines: (id, lines) => {
+    set((state) => ({
+      orders: state.orders.map((o) =>
+        o.id === id
+          ? { ...o, lines, updatedAt: new Date().toISOString() }
+          : o,
+      ),
+    }))
+    void api(`/orders/${id}/lines`, {
+      method: 'PUT',
+      body: JSON.stringify({ lines }),
+    }).catch((e) => syncFail('setOrderLines', e))
+  },
+
+  addPayment: (orderId, payment) => {
+    const full: Payment = { ...payment, id: nanoid(8) }
+    set((state) => ({
+      orders: state.orders.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              payments: [...o.payments, full],
+              updatedAt: new Date().toISOString(),
             }
-          }
-          return {
-            purchases: [
-              {
-                id,
-                title: purchase.title,
-                status: purchase.status || 'planned',
-                supplier: purchase.supplier,
-                orderIds: purchase.orderIds || [],
-                items: purchase.items || [],
-                dueDate:
-                  purchase.dueDate ||
-                  new Date(Date.now() + 3 * 86400000).toISOString(),
-                createdAt: new Date().toISOString(),
-              },
-              ...state.purchases,
-            ],
-          }
-        })
-        return id
-      },
+          : o,
+      ),
+    }))
+    void api(`/orders/${orderId}/payments`, {
+      method: 'POST',
+      body: JSON.stringify(full),
+    }).catch((e) => syncFail('addPayment', e))
+  },
 
-      setPurchaseStatus: (id, status) =>
+  removePayment: (orderId, paymentId) => {
+    set((state) => ({
+      orders: state.orders.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              payments: o.payments.filter((p) => p.id !== paymentId),
+              updatedAt: new Date().toISOString(),
+            }
+          : o,
+      ),
+    }))
+    void api(`/orders/${orderId}/payments/${paymentId}`, {
+      method: 'DELETE',
+    }).catch((e) => syncFail('removePayment', e))
+  },
+
+  upsertPurchase: (purchase) => {
+    const id = purchase.id || nanoid(8)
+    const existing = get().purchases.find((p) => p.id === id)
+    const next: Purchase = existing
+      ? { ...existing, ...purchase, id }
+      : {
+          id,
+          title: purchase.title,
+          status: purchase.status || 'planned',
+          supplier: purchase.supplier,
+          orderIds: purchase.orderIds || [],
+          items: purchase.items || [],
+          dueDate:
+            purchase.dueDate ||
+            new Date(Date.now() + 3 * 86400000).toISOString(),
+          createdAt: new Date().toISOString(),
+        }
+    set((state) => ({
+      purchases: existing
+        ? state.purchases.map((p) => (p.id === id ? next : p))
+        : [next, ...state.purchases],
+    }))
+    if (existing) {
+      void api(`/purchases/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(next),
+      }).catch((e) => syncFail('upsertPurchase', e))
+    } else {
+      void api('/purchases', {
+        method: 'POST',
+        body: JSON.stringify(next),
+      }).catch((e) => syncFail('upsertPurchase', e))
+    }
+    return id
+  },
+
+  setPurchaseStatus: (id, status) => {
+    set((state) => ({
+      purchases: state.purchases.map((p) =>
+        p.id === id ? { ...p, status } : p,
+      ),
+    }))
+    void api(`/purchases/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }).catch((e) => syncFail('setPurchaseStatus', e))
+  },
+
+  deletePurchase: (id) => {
+    set((state) => ({
+      purchases: state.purchases.filter((p) => p.id !== id),
+    }))
+    void api(`/purchases/${id}`, { method: 'DELETE' }).catch((e) =>
+      syncFail('deletePurchase', e),
+    )
+  },
+
+  generatePurchaseFromOrders: (orderIds, title) => {
+    const tempId = nanoid(8)
+    // Optimistic placeholder; replaced when API returns
+    const placeholder: Purchase = {
+      id: tempId,
+      title: title || 'Закупка…',
+      status: 'planned',
+      orderIds,
+      items: [],
+      dueDate: new Date(Date.now() + 2 * 86400000).toISOString(),
+      createdAt: new Date().toISOString(),
+    }
+    set((state) => ({ purchases: [placeholder, ...state.purchases] }))
+    void api<Purchase>('/purchases/generate', {
+      method: 'POST',
+      body: JSON.stringify({ orderIds, title }),
+    })
+      .then((purchase) => {
         set((state) => ({
           purchases: state.purchases.map((p) =>
-            p.id === id ? { ...p, status } : p,
+            p.id === tempId ? purchase : p,
           ),
-        })),
-
-      deletePurchase: (id) =>
-        set((state) => ({
-          purchases: state.purchases.filter((p) => p.id !== id),
-        })),
-
-      generatePurchaseFromOrders: (orderIds, title) => {
-        const state = get()
-        const selected = state.orders.filter((o) => orderIds.includes(o.id))
-        const ingredientMap = new Map<
-          string,
-          { ingredientId?: string; name: string; unit: string; qty: number; price: number }
-        >()
-
-        const addIng = (
-          key: string,
-          data: {
-            ingredientId?: string
-            name: string
-            unit: string
-            qty: number
-            price: number
-          },
-        ) => {
-          const prev = ingredientMap.get(key)
-          ingredientMap.set(key, {
-            ...data,
-            qty: Math.round(((prev?.qty || 0) + data.qty) * 1000) / 1000,
-          })
-        }
-
-        for (const order of selected) {
-          for (const line of order.lines) {
-            if (line.kind !== 'product' && line.kind !== 'ingredient') continue
-            const catalogItem = line.catalogItemId
-              ? state.catalog.find((c) => c.id === line.catalogItemId)
-              : undefined
-
-            if (line.kind === 'ingredient') {
-              addIng(line.catalogItemId || line.name, {
-                ingredientId: line.catalogItemId,
-                name: line.name,
-                unit: line.unit,
-                qty: line.qty,
-                price: line.cost || catalogItem?.cost || 0,
-              })
-              continue
-            }
-
-            // Prefer ТТК (composition) from catalog product
-            const bom = catalogItem?.composition?.filter((c) => c.qty > 0) || []
-            if (bom.length > 0) {
-              for (const row of bom) {
-                const ing = state.catalog.find((c) => c.id === row.ingredientId)
-                if (!ing) continue
-                addIng(ing.id, {
-                  ingredientId: ing.id,
-                  name: ing.name,
-                  unit: ing.unit,
-                  qty: row.qty * line.qty,
-                  price: ing.cost,
-                })
-              }
-              continue
-            }
-
-            // Fallback heuristic when ТТК is empty: tags / category match
-            if (catalogItem) {
-              const related = state.catalog.filter(
-                (c) =>
-                  c.kind === 'ingredient' &&
-                  (catalogItem.tags.some((t) => c.tags.includes(t)) ||
-                    c.category === catalogItem.category),
-              )
-              const share = Math.max(line.qty * 0.05, 0.2)
-              for (const ing of related.slice(0, 3)) {
-                addIng(ing.id, {
-                  ingredientId: ing.id,
-                  name: ing.name,
-                  unit: ing.unit,
-                  qty: share,
-                  price: ing.cost,
-                })
-              }
-            }
-          }
-        }
-
-        if (ingredientMap.size === 0) {
-          state.catalog
-            .filter((c) => c.kind === 'ingredient')
-            .slice(0, 8)
-            .forEach((ing) => {
-              addIng(ing.id, {
-                ingredientId: ing.id,
-                name: ing.name,
-                unit: ing.unit,
-                qty: 1,
-                price: ing.cost,
-              })
-            })
-        }
-
-        const items = [...ingredientMap.values()]
-          .sort((a, b) => a.name.localeCompare(b.name, 'uk'))
-          .map((item) => ({
-            id: nanoid(8),
-            ...item,
-          }))
-
-        const id = nanoid(8)
-        const purchase: Purchase = {
-          id,
-          title:
-            title ||
-            `Закупка: ${selected.map((o) => o.number).join(', ') || 'нове'}`,
-          status: 'planned',
-          orderIds,
-          items,
-          dueDate: new Date(Date.now() + 2 * 86400000).toISOString(),
-          createdAt: new Date().toISOString(),
-        }
-        set({ purchases: [purchase, ...state.purchases] })
-        return id
-      },
-
-      updateSettings: (patch) =>
-        set((state) => ({
-          settings: { ...state.settings, ...patch },
-        })),
-
-      addManager: (name) => {
-        const trimmed = name.trim()
-        if (!trimmed) return
-        set((state) => ({
-          settings: {
-            ...state.settings,
-            managers: state.settings.managers.includes(trimmed)
-              ? state.settings.managers
-              : [...state.settings.managers, trimmed],
-          },
         }))
-      },
-
-      removeManager: (name) =>
+      })
+      .catch((e) => {
         set((state) => ({
-          settings: {
-            ...state.settings,
-            managers: state.settings.managers.filter((m) => m !== name),
-          },
-        })),
-    }),
-    {
-      name: 'shastya-crm-v2',
-      merge: (persisted, current) => {
-        const p = (persisted || {}) as Partial<CrmState>
-        const settings = {
-          ...current.settings,
-          ...(p.settings || {}),
-          paymentAccounts:
-            p.settings?.paymentAccounts || current.settings.paymentAccounts,
-          trackPayments:
-            p.settings?.trackPayments ?? current.settings.trackPayments,
-        }
-        return {
-          ...current,
-          ...p,
-          settings,
-          catalog: (p.catalog || current.catalog).map((item) => ({
-            ...item,
-            composition: item.composition || [],
-          })),
-        }
-      },
-    },
-  ),
-)
+          purchases: state.purchases.filter((p) => p.id !== tempId),
+        }))
+        void syncFail('generatePurchaseFromOrders', e)
+      })
+    return tempId
+  },
+
+  updateSettings: (patch) => {
+    set((state) => ({
+      settings: { ...state.settings, ...patch },
+    }))
+    const settings = get().settings
+    void api('/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    }).catch((e) => syncFail('updateSettings', e))
+  },
+
+  addManager: (name) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    const managers = get().settings.managers.includes(trimmed)
+      ? get().settings.managers
+      : [...get().settings.managers, trimmed]
+    get().updateSettings({ managers })
+  },
+
+  removeManager: (name) => {
+    get().updateSettings({
+      managers: get().settings.managers.filter((m) => m !== name),
+    })
+  },
+}))
