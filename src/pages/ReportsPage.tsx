@@ -67,12 +67,10 @@ export function ReportsPage() {
       return { ...p, share, cumShare, grade }
     })
 
-    const purchaseSpend = purchases
-      .filter((p) => p.status !== 'planned' || true)
-      .reduce(
-        (s, p) => s + p.items.reduce((ss, i) => ss + i.qty * i.price, 0),
-        0,
-      )
+    const purchaseSpend = purchases.reduce(
+      (s, p) => s + p.items.reduce((ss, i) => ss + i.qty * i.price, 0),
+      0,
+    )
 
     const pipeline = orders
       .filter((o) => ['new', 'sent', 'confirmed'].includes(o.status))
