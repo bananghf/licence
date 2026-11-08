@@ -3,6 +3,7 @@ import type {
   PaymentStatus,
   PurchaseStatus,
   ServiceType,
+  StockMovementType,
 } from '../types'
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -49,3 +50,9 @@ export const KIND_LABELS = {
   service: 'Послуги',
   ingredient: 'Інгредієнти',
 } as const
+
+export const STOCK_MOVE_LABELS: Record<StockMovementType, string> = {
+  intake: 'Оприбуткування',
+  writeoff: 'Списання',
+  purchase: 'З закупки',
+}

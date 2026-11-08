@@ -22,6 +22,13 @@ import {
   writeAudit,
 } from '../db.js'
 import { buildPurchaseFromOrders } from '../purchases.js'
+import {
+  applyStockDelta,
+  listStockBalances,
+  listStockMovements,
+  receivePurchaseToStock,
+  setMinQuantity,
+} from '../stock.js'
 import { param } from '../params.js'
 import { seedDemoData } from '../seed.js'
 import type {
@@ -409,6 +416,7 @@ apiRouter.put('/purchases/:id', (req: AuthRequest, res) => {
     res.status(404).json({ error: 'Not found' })
     return
   }
+  const prevStatus = existing.status
   const purchase: Purchase = {
     ...existing,
     ...req.body,
@@ -420,6 +428,19 @@ apiRouter.put('/purchases/:id', (req: AuthRequest, res) => {
       : existing.orderIds,
   }
   replacePurchase(purchase)
+  if (prevStatus !== 'received' && purchase.status === 'received') {
+    try {
+      receivePurchaseToStock(purchase, req.user?.id)
+    } catch (err) {
+      writeAudit(
+        req.user?.id,
+        'stock_error',
+        'purchase',
+        purchase.id,
+        err instanceof Error ? err.message : 'stock receive failed',
+      )
+    }
+  }
   writeAudit(req.user?.id, 'update', 'purchase', purchase.id)
   res.json(purchase)
 })
@@ -430,11 +451,25 @@ apiRouter.patch('/purchases/:id/status', (req: AuthRequest, res) => {
     res.status(404).json({ error: 'Not found' })
     return
   }
+  const prevStatus = existing.status
   const purchase: Purchase = {
     ...existing,
     status: req.body?.status || existing.status,
   }
   replacePurchase(purchase)
+  if (prevStatus !== 'received' && purchase.status === 'received') {
+    try {
+      receivePurchaseToStock(purchase, req.user?.id)
+    } catch (err) {
+      writeAudit(
+        req.user?.id,
+        'stock_error',
+        'purchase',
+        purchase.id,
+        err instanceof Error ? err.message : 'stock receive failed',
+      )
+    }
+  }
   writeAudit(req.user?.id, 'status', 'purchase', purchase.id, purchase.status)
   res.json(purchase)
 })
@@ -466,6 +501,120 @@ apiRouter.delete('/purchases/:id', (req: AuthRequest, res) => {
   db.prepare('DELETE FROM purchases WHERE id = ?').run(param(req, 'id'))
   writeAudit(req.user?.id, 'delete', 'purchase', param(req, 'id'))
   res.json({ ok: true })
+})
+
+/* ---------- Warehouse / Склад ---------- */
+apiRouter.get('/warehouse/balances', (req, res) => {
+  const kind = typeof req.query.kind === 'string' ? req.query.kind : 'ingredient'
+  res.json(listStockBalances(kind))
+})
+
+apiRouter.get('/warehouse/movements', (req, res) => {
+  const catalogItemId =
+    typeof req.query.catalogItemId === 'string'
+      ? req.query.catalogItemId
+      : undefined
+  const limit =
+    typeof req.query.limit === 'string' ? Number(req.query.limit) : 100
+  res.json(listStockMovements({ catalogItemId, limit }))
+})
+
+apiRouter.post('/warehouse/intake', (req: AuthRequest, res) => {
+  const body = req.body || {}
+  const items: { catalogItemId: string; qty: number }[] = Array.isArray(
+    body.items,
+  )
+    ? body.items
+    : []
+  if (items.length === 0) {
+    res.status(400).json({ error: 'items required' })
+    return
+  }
+  const date = body.date || new Date().toISOString()
+  const supplier = body.supplier ? String(body.supplier) : undefined
+  const note = body.note ? String(body.note) : undefined
+  try {
+    const movements = items.map((item) =>
+      applyStockDelta({
+        catalogItemId: item.catalogItemId,
+        type: 'intake',
+        qty: Number(item.qty),
+        date,
+        supplier,
+        note,
+        createdBy: req.user?.id,
+      }),
+    )
+    writeAudit(
+      req.user?.id,
+      'intake',
+      'warehouse',
+      undefined,
+      `${movements.length} поз.`,
+    )
+    res.status(201).json({
+      movements,
+      balances: listStockBalances('all'),
+    })
+  } catch (err) {
+    res.status(400).json({
+      error: err instanceof Error ? err.message : 'Intake failed',
+    })
+  }
+})
+
+apiRouter.post('/warehouse/writeoff', (req: AuthRequest, res) => {
+  const body = req.body || {}
+  const items: { catalogItemId: string; qty: number }[] = Array.isArray(
+    body.items,
+  )
+    ? body.items
+    : []
+  if (items.length === 0) {
+    res.status(400).json({ error: 'items required' })
+    return
+  }
+  const date = body.date || new Date().toISOString()
+  const note = body.note ? String(body.note) : undefined
+  try {
+    const movements = items.map((item) =>
+      applyStockDelta({
+        catalogItemId: item.catalogItemId,
+        type: 'writeoff',
+        qty: Number(item.qty),
+        date,
+        note,
+        createdBy: req.user?.id,
+      }),
+    )
+    writeAudit(
+      req.user?.id,
+      'writeoff',
+      'warehouse',
+      undefined,
+      `${movements.length} поз.`,
+    )
+    res.status(201).json({
+      movements,
+      balances: listStockBalances('all'),
+    })
+  } catch (err) {
+    res.status(400).json({
+      error: err instanceof Error ? err.message : 'Write-off failed',
+    })
+  }
+})
+
+apiRouter.patch('/warehouse/balances/:id/min', (req: AuthRequest, res) => {
+  const id = param(req, 'id')
+  const catalog = listCatalog().find((c) => c.id === id)
+  if (!catalog) {
+    res.status(404).json({ error: 'Not found' })
+    return
+  }
+  setMinQuantity(id, Number(req.body?.minQuantity ?? 0))
+  writeAudit(req.user?.id, 'min_qty', 'warehouse', id)
+  res.json(listStockBalances('all').find((b) => b.catalogItemId === id))
 })
 
 /* ---------- Settings ---------- */

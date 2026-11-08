@@ -1,7 +1,7 @@
 import cors from 'cors'
 import express from 'express'
 import { initSchema, getDbPath, loadCrmState } from './db.js'
-import { ensureUsers, seedDemoData, DEMO_CREDENTIALS } from './seed.js'
+import { ensureUsers, seedDemoData, ensureStockData, DEMO_CREDENTIALS } from './seed.js'
 import { authRouter } from './routes/auth.js'
 import { apiRouter, getPublishedOrder } from './routes/api.js'
 import { optionalAuth } from './auth.js'
@@ -12,6 +12,7 @@ const PORT = Number(process.env.PORT || 8787)
 initSchema()
 ensureUsers()
 seedDemoData(false)
+ensureStockData()
 
 const app = express()
 app.use(

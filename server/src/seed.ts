@@ -3,6 +3,7 @@ import { nanoid } from 'nanoid'
 import {
   clearBusinessData,
   db,
+  listCatalog,
   replaceOrder,
   replacePurchase,
   saveSettings,
@@ -10,6 +11,7 @@ import {
   upsertCompanyRow,
   upsertContactRow,
 } from './db.js'
+import { seedInitialStock } from './stock.js'
 import type {
   AppSettings,
   CatalogItem,
@@ -745,7 +747,15 @@ export function seedDemoData(force = false) {
     saveSettings(state.settings)
   })
   tx()
+  seedInitialStock(state.catalog)
   return true
+}
+
+/** Seed warehouse balances if the tables exist but are empty (upgrade path). */
+export function ensureStockData() {
+  const catalog = listCatalog().filter((c) => c.kind === 'ingredient')
+  if (catalog.length === 0) return false
+  return seedInitialStock(catalog)
 }
 
 export const DEMO_CREDENTIALS = {

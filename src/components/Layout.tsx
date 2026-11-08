@@ -11,6 +11,7 @@ const nav = [
   { to: '/catalog', label: 'Каталог', icon: '◎' },
   { to: '/clients', label: 'Клієнти', icon: '☺' },
   { to: '/purchases', label: 'Закупки', icon: '▤' },
+  { to: '/warehouse', label: 'Склад', icon: '⬡' },
   { to: '/reports', label: 'Звіти', icon: '◫' },
   { to: '/settings', label: 'Налаштування', icon: '⚙' },
 ]

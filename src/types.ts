@@ -20,6 +20,35 @@ export type CatalogKind = 'product' | 'service' | 'ingredient'
 
 export type PurchaseStatus = 'planned' | 'ordered' | 'received'
 
+export type StockMovementType = 'intake' | 'writeoff' | 'purchase'
+
+export interface StockBalance {
+  catalogItemId: string
+  name: string
+  kind: CatalogKind
+  category: string
+  unit: string
+  quantity: number
+  minQuantity: number
+  lowStock: boolean
+  updatedAt?: string
+}
+
+export interface StockMovement {
+  id: string
+  catalogItemId: string
+  name?: string
+  unit?: string
+  type: StockMovementType
+  qty: number
+  date: string
+  supplier?: string
+  note?: string
+  purchaseId?: string
+  createdAt: string
+  createdBy?: string
+}
+
 /** One line of a dish tech card (ТТК / BOM). qty is per 1 portion of the product. */
 export interface CompositionLine {
   ingredientId: string

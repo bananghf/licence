@@ -17,6 +17,34 @@ export type ServiceType =
 export type CatalogKind = 'product' | 'service' | 'ingredient'
 export type PurchaseStatus = 'planned' | 'ordered' | 'received'
 export type UserRole = 'admin' | 'manager'
+export type StockMovementType = 'intake' | 'writeoff' | 'purchase'
+
+export interface StockBalance {
+  catalogItemId: string
+  name: string
+  kind: CatalogKind
+  category: string
+  unit: string
+  quantity: number
+  minQuantity: number
+  lowStock: boolean
+  updatedAt?: string
+}
+
+export interface StockMovement {
+  id: string
+  catalogItemId: string
+  name?: string
+  unit?: string
+  type: StockMovementType
+  qty: number
+  date: string
+  supplier?: string
+  note?: string
+  purchaseId?: string
+  createdAt: string
+  createdBy?: string
+}
 
 export interface CompositionLine {
   ingredientId: string

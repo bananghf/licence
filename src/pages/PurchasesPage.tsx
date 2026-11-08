@@ -51,7 +51,7 @@ export function PurchasesPage() {
     <div>
       <PageHeader
         title="Закупки"
-        subtitle="Планування закупівель під замовлення"
+        subtitle="Планування закупівель під замовлення · статус «Отримано» додає кількість на склад"
         actions={
           <div className="btn-row">
             <Button onClick={() => setGenOpen(true)}>Згенерувати з замовлень</Button>

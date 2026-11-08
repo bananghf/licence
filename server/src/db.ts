@@ -163,11 +163,36 @@ export function initSchema() {
       created_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS stock_levels (
+      catalog_item_id TEXT PRIMARY KEY,
+      quantity REAL NOT NULL DEFAULT 0,
+      min_quantity REAL NOT NULL DEFAULT 0,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY (catalog_item_id) REFERENCES catalog_items(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS stock_movements (
+      id TEXT PRIMARY KEY,
+      catalog_item_id TEXT NOT NULL,
+      type TEXT NOT NULL CHECK(type IN ('intake','writeoff','purchase')),
+      qty REAL NOT NULL,
+      date TEXT NOT NULL,
+      supplier TEXT,
+      note TEXT,
+      purchase_id TEXT,
+      created_at TEXT NOT NULL,
+      created_by TEXT,
+      FOREIGN KEY (catalog_item_id) REFERENCES catalog_items(id) ON DELETE CASCADE
+    );
+
     CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
     CREATE INDEX IF NOT EXISTS idx_orders_event ON orders(event_start);
     CREATE INDEX IF NOT EXISTS idx_contacts_company ON contacts(company_id);
     CREATE INDEX IF NOT EXISTS idx_lines_order ON estimate_lines(order_id);
     CREATE INDEX IF NOT EXISTS idx_payments_order ON payments(order_id);
+    CREATE INDEX IF NOT EXISTS idx_stock_movements_date ON stock_movements(date);
+    CREATE INDEX IF NOT EXISTS idx_stock_movements_item ON stock_movements(catalog_item_id);
+    CREATE INDEX IF NOT EXISTS idx_stock_movements_purchase ON stock_movements(purchase_id);
   `)
 }
 
@@ -650,6 +675,8 @@ export function writeAudit(
 export function clearBusinessData() {
   const tx = db.transaction(() => {
     db.exec(`
+      DELETE FROM stock_movements;
+      DELETE FROM stock_levels;
       DELETE FROM purchase_items;
       DELETE FROM purchases;
       DELETE FROM payments;

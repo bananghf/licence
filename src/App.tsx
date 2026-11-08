@@ -8,6 +8,7 @@ import { CalendarPage } from './pages/CalendarPage'
 import { CatalogPage } from './pages/CatalogPage'
 import { ClientsPage } from './pages/ClientsPage'
 import { PurchasesPage } from './pages/PurchasesPage'
+import { WarehousePage } from './pages/WarehousePage'
 import { KitchenPage } from './pages/KitchenPage'
 import { KitchenBoardPage } from './pages/KitchenBoardPage'
 import { ReportsPage } from './pages/ReportsPage'
@@ -59,6 +60,7 @@ export default function App() {
               <Route path="catalog" element={<CatalogPage />} />
               <Route path="clients" element={<ClientsPage />} />
               <Route path="purchases" element={<PurchasesPage />} />
+              <Route path="warehouse" element={<WarehousePage />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="settings" element={<SettingsPage />} />
             </Route>
