@@ -1,12 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  addMonths,
   eachDayOfInterval,
   endOfMonth,
   endOfWeek,
   format,
-  isSameDay,
   isSameMonth,
   parseISO,
   startOfMonth,
@@ -16,12 +14,22 @@ import { uk } from 'date-fns/locale'
 import { useCrmStore } from '../store/useCrmStore'
 import { Button, PageHeader, ServiceBadge, StatusBadge } from '../components/ui'
 import { formatDateTime, money, orderTotal } from '../lib/format'
+import {
+  DEFAULT_CALENDAR_TZ,
+  addCalendarMonths,
+  formatYmdInZone,
+  isSameYmd,
+  startOfMonthInZone,
+  todayInZone,
+} from '../lib/calendarDate'
 
 export function CalendarPage() {
   const orders = useCrmStore((s) => s.orders)
+  const timezone =
+    useCrmStore((s) => s.settings.timezone) || DEFAULT_CALENDAR_TZ
   const navigate = useNavigate()
-  const [cursor, setCursor] = useState(() => startOfMonth(new Date()))
-  const [selected, setSelected] = useState<Date | null>(new Date())
+  const [cursor, setCursor] = useState(() => startOfMonthInZone(new Date(), timezone))
+  const [selected, setSelected] = useState<Date | null>(() => todayInZone(timezone))
 
   const days = useMemo(() => {
     const start = startOfWeek(startOfMonth(cursor), { weekStartsOn: 1 })
@@ -33,19 +41,26 @@ export function CalendarPage() {
     const map = new Map<string, typeof orders>()
     for (const o of orders) {
       if (o.status === 'lost') continue
-      const key = format(parseISO(o.eventStart), 'yyyy-MM-dd')
+      const key = formatYmdInZone(parseISO(o.eventStart), timezone)
       const list = map.get(key) || []
       list.push(o)
       map.set(key, list)
     }
     return map
-  }, [orders])
+  }, [orders, timezone])
 
   const dayOrders = selected
-    ? eventsByDay.get(format(selected, 'yyyy-MM-dd')) || []
+    ? eventsByDay.get(formatYmdInZone(selected, timezone)) || []
     : []
 
   const weekLabels = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд']
+  const today = todayInZone(timezone)
+
+  const goToToday = () => {
+    const now = todayInZone(timezone)
+    setCursor(startOfMonthInZone(now, timezone))
+    setSelected(now)
+  }
 
   return (
     <div>
@@ -54,9 +69,15 @@ export function CalendarPage() {
         subtitle={format(cursor, 'LLLL yyyy', { locale: uk })}
         actions={
           <div className="btn-row">
-            <Button onClick={() => setCursor((c) => addMonths(c, -1))}>←</Button>
-            <Button onClick={() => setCursor(startOfMonth(new Date()))}>Сьогодні</Button>
-            <Button onClick={() => setCursor((c) => addMonths(c, 1))}>→</Button>
+            <Button type="button" onClick={() => setCursor((c) => addCalendarMonths(c, -1))}>
+              ←
+            </Button>
+            <Button type="button" onClick={goToToday}>
+              Сьогодні
+            </Button>
+            <Button type="button" onClick={() => setCursor((c) => addCalendarMonths(c, 1))}>
+              →
+            </Button>
           </div>
         }
       />
@@ -72,10 +93,10 @@ export function CalendarPage() {
           </div>
           <div className="calendar-grid">
             {days.map((day) => {
-              const key = format(day, 'yyyy-MM-dd')
+              const key = formatYmdInZone(day, timezone)
               const events = eventsByDay.get(key) || []
-              const isToday = isSameDay(day, new Date())
-              const isSelected = selected && isSameDay(day, selected)
+              const isToday = isSameYmd(day, today, timezone)
+              const isSelected = selected && isSameYmd(day, selected, timezone)
               return (
                 <button
                   key={key}
