@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const { init, getContent, saveContent, addLead, listLeads } = require("./lib/store");
 const { renderPage } = require("./lib/render");
-const { configured, checkPassword, isAuthed, sessionCookie, clearCookie } = require("./lib/auth");
+const { configured, checkPassword, isAuthed, sessionCookie, clearCookie, revokeFromCookie } = require("./lib/auth");
 const telegram = require("./lib/telegram");
 const { clientIp, limited, sendJson, readBody, csrf, secure } = require("./lib/api-util");
 
@@ -50,10 +50,15 @@ function publicFile(urlPath) {
 }
 
 async function handler(req, res) {
-  const url = new URL(req.url, "http://localhost");
-  const pathname = decodeURIComponent(url.pathname);
-
   try {
+    let pathname;
+    try {
+      const url = new URL(req.url || "/", "http://localhost");
+      pathname = decodeURIComponent(url.pathname);
+    } catch {
+      return send(res, 400, "Bad request");
+    }
+
     if (req.method === "GET" && (pathname === "/" || pathname === "/index.html")) {
       const html = renderPage(await getContent(), siteUrl);
       return send(res, 200, html, { "Content-Type": "text/html; charset=utf-8" });
@@ -100,6 +105,7 @@ async function handler(req, res) {
     }
     if (req.method === "POST" && pathname === "/api/logout") {
       if (!csrf(req)) return sendJson(res, 403, { error: "csrf" });
+      revokeFromCookie(req.headers.cookie);
       return sendJson(res, 200, { ok: true }, { "Set-Cookie": clearCookie(secure(req)) });
     }
     if (req.method === "PUT" && pathname === "/api/content") {
