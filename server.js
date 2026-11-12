@@ -26,8 +26,16 @@ const publicPrefixes = ["/css/", "/js/", "/images/", "/fonts/"];
 const attempts = new Map();
 
 function clientIp(req) {
-  const forwarded = req.headers["x-forwarded-for"];
-  return String(forwarded || req.socket.remoteAddress || "").split(",")[0].trim();
+  const real = String(req.headers["x-real-ip"] || "").trim();
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(real) || real.includes(":")) return real;
+  const forwarded = String(req.headers["x-forwarded-for"] || "");
+  if (forwarded) {
+    const parts = forwarded.split(",").map((part) => part.trim()).filter(Boolean);
+    // Proxies append the real client; the first value is client-spoofable.
+    const candidate = parts[parts.length - 1] || "";
+    if (candidate) return candidate;
+  }
+  return String(req.socket.remoteAddress || "");
 }
 
 function limited(key, max, windowMs) {
@@ -84,7 +92,12 @@ function csrf(req) {
 
 function publicFile(urlPath) {
   if (urlPath.includes("\0") || urlPath.includes("..")) return null;
-  const allowed = publicPrefixes.some((prefix) => urlPath.startsWith(prefix)) || urlPath === "/favicon.svg";
+  const allowed =
+    publicPrefixes.some((prefix) => urlPath.startsWith(prefix)) ||
+    urlPath === "/favicon.svg" ||
+    urlPath === "/admin.html" ||
+    urlPath === "/robots.txt" ||
+    urlPath === "/sitemap.xml";
   if (!allowed) return null;
   const file = path.resolve(root, `.${urlPath}`);
   if (!file.startsWith(root + path.sep)) return null;
@@ -100,12 +113,12 @@ async function handler(req, res) {
       const html = renderPage(await getContent(), siteUrl);
       return send(res, 200, html, { "Content-Type": "text/html; charset=utf-8" });
     }
-    if (req.method === "GET" && pathname === "/admin") {
+    if (req.method === "GET" && (pathname === "/admin" || pathname === "/admin.html")) {
       const file = path.join(root, "admin.html");
       return send(res, 200, fs.readFileSync(file), { "Content-Type": "text/html; charset=utf-8" });
     }
     if (req.method === "GET" && pathname === "/robots.txt") {
-      return send(res, 200, `User-agent: *\nAllow: /\nDisallow: /admin\nSitemap: ${siteUrl}/sitemap.xml\n`, { "Content-Type": "text/plain; charset=utf-8" });
+      return send(res, 200, `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /admin.html\nSitemap: ${siteUrl}/sitemap.xml\n`, { "Content-Type": "text/plain; charset=utf-8" });
     }
     if (req.method === "GET" && pathname === "/sitemap.xml") {
       const content = await getContent();
@@ -158,6 +171,9 @@ async function handler(req, res) {
         telegramConfigured: telegram.configured(),
       });
     }
+    if (req.method === "GET" && pathname === "/api/health") {
+      return json(res, 200, { ok: true });
+    }
     if (req.method === "GET") {
       const file = publicFile(pathname);
       if (file && fs.existsSync(file) && fs.statSync(file).isFile()) {
@@ -173,10 +189,9 @@ async function handler(req, res) {
   }
 }
 
-init()
-  .catch(() => {})
-  .finally(() => {
-    http.createServer(handler).listen(port, "0.0.0.0", () => {
-      console.log(`listening ${port}`);
-    });
+http.createServer(handler).listen(port, "0.0.0.0", () => {
+  console.log(`listening ${port}`);
+  init().catch((err) => {
+    console.error("db init skipped", err && err.message ? err.message : "error");
   });
+});

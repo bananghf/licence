@@ -4,6 +4,7 @@
   "description": "Сайт кейтерингу «Щастя Є» з адмінкою контенту",
   "scripts": {
     "start": "node server.js",
+    "build": "node scripts/build-html.js",
     "build:html": "node scripts/build-html.js"
   },
   "engines": {
