@@ -5,6 +5,7 @@ const { init, getContent, saveContent, addLead, listLeads } = require("./lib/sto
 const { renderPage } = require("./lib/render");
 const { configured, checkPassword, isAuthed, sessionCookie, clearCookie } = require("./lib/auth");
 const telegram = require("./lib/telegram");
+const { clientIp, limited, sendJson, readBody, csrf, secure } = require("./lib/api-util");
 
 const root = __dirname;
 const port = Number(process.env.PORT) || 4173;
@@ -23,71 +24,10 @@ const types = {
   ".xml": "application/xml; charset=utf-8",
 };
 const publicPrefixes = ["/css/", "/js/", "/images/", "/fonts/"];
-const attempts = new Map();
-
-function clientIp(req) {
-  const real = String(req.headers["x-real-ip"] || "").trim();
-  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(real) || real.includes(":")) return real;
-  const forwarded = String(req.headers["x-forwarded-for"] || "");
-  if (forwarded) {
-    const parts = forwarded.split(",").map((part) => part.trim()).filter(Boolean);
-    // Proxies append the real client; the first value is client-spoofable.
-    const candidate = parts[parts.length - 1] || "";
-    if (candidate) return candidate;
-  }
-  return String(req.socket.remoteAddress || "");
-}
-
-function limited(key, max, windowMs) {
-  const now = Date.now();
-  const row = attempts.get(key) || [];
-  const fresh = row.filter((time) => now - time < windowMs);
-  if (fresh.length >= max) {
-    attempts.set(key, fresh);
-    return true;
-  }
-  fresh.push(now);
-  attempts.set(key, fresh);
-  return false;
-}
 
 function send(res, status, body, headers = {}) {
   res.writeHead(status, { "Cache-Control": "no-store", ...headers });
   res.end(body);
-}
-
-function json(res, status, value, headers) {
-  send(res, status, JSON.stringify(value), { "Content-Type": "application/json; charset=utf-8", ...headers });
-}
-
-function readBody(req) {
-  return new Promise((resolve, reject) => {
-    const chunks = [];
-    let size = 0;
-    req.on("data", (chunk) => {
-      size += chunk.length;
-      if (size > 250_000) {
-        reject(new Error("too large"));
-        req.destroy();
-        return;
-      }
-      chunks.push(chunk);
-    });
-    req.on("end", () => {
-      const raw = Buffer.concat(chunks).toString("utf8");
-      if (!raw) return resolve({});
-      try { resolve(JSON.parse(raw)); } catch { reject(new Error("bad json")); }
-    });
-    req.on("error", reject);
-  });
-}
-
-function secure(req) {
-  return req.headers["x-forwarded-proto"] === "https" || process.env.NODE_ENV === "production";
-}
-
-function csrf(req) {
-  return req.headers["x-schastia"] === "1";
 }
 
 function publicFile(urlPath) {
@@ -97,11 +37,16 @@ function publicFile(urlPath) {
     urlPath === "/favicon.svg" ||
     urlPath === "/admin.html" ||
     urlPath === "/robots.txt" ||
-    urlPath === "/sitemap.xml";
+    urlPath === "/sitemap.xml" ||
+    urlPath === "/index.html";
   if (!allowed) return null;
-  const file = path.resolve(root, `.${urlPath}`);
-  if (!file.startsWith(root + path.sep)) return null;
-  return file;
+  const candidates = [path.resolve(root, `.${urlPath}`), path.resolve(root, `public${urlPath}`)];
+  for (const file of candidates) {
+    if ((file.startsWith(root + path.sep) || file === root) && fs.existsSync(file) && fs.statSync(file).isFile()) {
+      return file;
+    }
+  }
+  return null;
 }
 
 async function handler(req, res) {
@@ -114,7 +59,7 @@ async function handler(req, res) {
       return send(res, 200, html, { "Content-Type": "text/html; charset=utf-8" });
     }
     if (req.method === "GET" && (pathname === "/admin" || pathname === "/admin.html")) {
-      const file = path.join(root, "admin.html");
+      const file = publicFile("/admin.html") || path.join(root, "admin.html");
       return send(res, 200, fs.readFileSync(file), { "Content-Type": "text/html; charset=utf-8" });
     }
     if (req.method === "GET" && pathname === "/robots.txt") {
@@ -128,55 +73,49 @@ async function handler(req, res) {
         .join("\n")}\n</urlset>\n`;
       return send(res, 200, body, { "Content-Type": "application/xml; charset=utf-8" });
     }
+    if (req.method === "GET" && pathname === "/api/health") return sendJson(res, 200, { ok: true });
     if (req.method === "GET" && pathname === "/api/session") {
-      return json(res, isAuthed(req.headers.cookie) ? 200 : 401, { ok: isAuthed(req.headers.cookie) });
+      const ok = isAuthed(req.headers.cookie);
+      return sendJson(res, ok ? 200 : 401, { ok });
     }
     if (req.method === "GET" && pathname === "/api/content") {
-      if (!isAuthed(req.headers.cookie)) return json(res, 401, { error: "auth" });
-      return json(res, 200, await getContent());
+      if (!isAuthed(req.headers.cookie)) return sendJson(res, 401, { error: "auth" });
+      return sendJson(res, 200, await getContent());
     }
     if (req.method === "GET" && pathname === "/api/leads") {
-      if (!isAuthed(req.headers.cookie)) return json(res, 401, { error: "auth" });
-      return json(res, 200, await listLeads());
-    }
-    if (req.method === "POST" && pathname === "/api/login") {
-      if (!csrf(req)) return json(res, 403, { error: "csrf" });
-      if (!configured()) return json(res, 503, { error: "unconfigured" });
-      if (limited(`login:${clientIp(req)}`, 8, 15 * 60 * 1000)) return json(res, 429, { error: "rate" });
-      const body = await readBody(req);
-      if (!checkPassword(body.password)) return json(res, 401, { error: "auth" });
-      return json(res, 200, { ok: true }, { "Set-Cookie": sessionCookie(secure(req)) });
-    }
-    if (req.method === "POST" && pathname === "/api/logout") {
-      if (!csrf(req)) return json(res, 403, { error: "csrf" });
-      return json(res, 200, { ok: true }, { "Set-Cookie": clearCookie(secure(req)) });
-    }
-    if (req.method === "PUT" && pathname === "/api/content") {
-      if (!csrf(req) || !isAuthed(req.headers.cookie)) return json(res, 401, { error: "auth" });
-      const body = await readBody(req);
-      return json(res, 200, await saveContent(body));
-    }
-    if (req.method === "POST" && pathname === "/api/leads") {
-      if (limited(`lead:${clientIp(req)}`, 5, 60 * 60 * 1000)) return json(res, 429, { error: "rate" });
-      const body = await readBody(req);
-      const lead = await addLead(body);
-      if (!lead) return json(res, 400, { error: "invalid" });
-      await telegram.notifyLead(lead);
-      return json(res, 201, { ok: true });
+      if (!isAuthed(req.headers.cookie)) return sendJson(res, 401, { error: "auth" });
+      return sendJson(res, 200, await listLeads());
     }
     if (req.method === "GET" && pathname === "/api/status") {
-      if (!isAuthed(req.headers.cookie)) return json(res, 401, { error: "auth" });
-      return json(res, 200, {
-        adminConfigured: configured(),
-        telegramConfigured: telegram.configured(),
-      });
+      if (!isAuthed(req.headers.cookie)) return sendJson(res, 401, { error: "auth" });
+      return sendJson(res, 200, { adminConfigured: configured(), telegramConfigured: telegram.configured() });
     }
-    if (req.method === "GET" && pathname === "/api/health") {
-      return json(res, 200, { ok: true });
+    if (req.method === "POST" && pathname === "/api/login") {
+      if (!csrf(req)) return sendJson(res, 403, { error: "csrf" });
+      if (!configured()) return sendJson(res, 503, { error: "unconfigured" });
+      if (limited(`login:${clientIp(req)}`, 8, 15 * 60 * 1000)) return sendJson(res, 429, { error: "rate" });
+      const body = await readBody(req);
+      if (!checkPassword(body.password)) return sendJson(res, 401, { error: "auth" });
+      return sendJson(res, 200, { ok: true }, { "Set-Cookie": sessionCookie(secure(req)) });
+    }
+    if (req.method === "POST" && pathname === "/api/logout") {
+      if (!csrf(req)) return sendJson(res, 403, { error: "csrf" });
+      return sendJson(res, 200, { ok: true }, { "Set-Cookie": clearCookie(secure(req)) });
+    }
+    if (req.method === "PUT" && pathname === "/api/content") {
+      if (!csrf(req) || !isAuthed(req.headers.cookie)) return sendJson(res, 401, { error: "auth" });
+      return sendJson(res, 200, await saveContent(await readBody(req)));
+    }
+    if (req.method === "POST" && pathname === "/api/leads") {
+      if (limited(`lead:${clientIp(req)}`, 5, 60 * 60 * 1000)) return sendJson(res, 429, { error: "rate" });
+      const lead = await addLead(await readBody(req));
+      if (!lead) return sendJson(res, 400, { error: "invalid" });
+      await telegram.notifyLead(lead);
+      return sendJson(res, 201, { ok: true });
     }
     if (req.method === "GET") {
       const file = publicFile(pathname);
-      if (file && fs.existsSync(file) && fs.statSync(file).isFile()) {
+      if (file) {
         return send(res, 200, fs.readFileSync(file), {
           "Content-Type": types[path.extname(file).toLowerCase()] || "application/octet-stream",
           "Cache-Control": "public, max-age=3600",
