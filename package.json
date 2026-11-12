@@ -1,0 +1,15 @@
+{
+  "name": "schastia",
+  "private": true,
+  "description": "Сайт кейтерингу «Щастя Є» з адмінкою контенту",
+  "scripts": {
+    "start": "node server.js",
+    "build:html": "node scripts/build-html.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "pg": "^8.16.3"
+  }
+}

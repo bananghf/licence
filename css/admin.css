@@ -1,0 +1,11 @@
+.admin { width: min(860px, calc(100% - 2rem)); margin: 1.5rem auto 3rem; }
+.admin-top { display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem; margin-bottom: 1rem; }
+.admin h1 { font-family: "Cormorant Garamond", serif; font-weight: 500; font-size: clamp(2.2rem, 4vw, 3rem); line-height: 0.95; }
+.panel { background: #fffdf8; border: 1px solid rgba(28, 23, 20, 0.14); border-radius: 16px; padding: 1rem; }
+.admin-actions { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; margin-bottom: 1rem; }
+.block { border-top: 1px solid rgba(28, 23, 20, 0.14); padding-top: 0.8rem; margin-top: 0.8rem; }
+.block h2, .admin h2 { font-family: "Cormorant Garamond", serif; font-size: 1.7rem; font-weight: 500; margin: 0.2rem 0 0.6rem; }
+.fields { display: grid; gap: 0.65rem; }
+.lead-row { border-top: 1px solid rgba(28, 23, 20, 0.14); padding: 0.7rem 0; }
+.lead-row strong { display: block; }
+.muted { color: #514940; }
