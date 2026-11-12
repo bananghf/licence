@@ -29,7 +29,11 @@ if (form && note) {
         body: JSON.stringify(body),
       });
       if (response.status === 400) {
-        note.textContent = "Перевірте ім’я і телефон (мінімум 10 цифр).";
+        note.textContent = "Перевірте ім’я і телефон: потрібен справжній номер, мінімум 10 цифр.";
+        return;
+      }
+      if (response.status === 404) {
+        note.textContent = "Сервер заявок ще не підключений. Оновіть сторінку пізніше або зателефонуйте.";
         return;
       }
       if (response.status === 429) {
