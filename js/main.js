@@ -28,6 +28,14 @@ if (form && note) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      if (response.status === 400) {
+        note.textContent = "Перевірте ім’я і телефон (мінімум 10 цифр).";
+        return;
+      }
+      if (response.status === 429) {
+        note.textContent = "Забагато заявок з цього пристрою. Зателефонуйте нам.";
+        return;
+      }
       if (!response.ok) throw new Error("fail");
       form.reset();
       note.textContent = "Дякуємо. Ми передзвонимо і запропонуємо формат під вашу подію.";

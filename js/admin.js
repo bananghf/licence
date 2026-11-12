@@ -165,13 +165,23 @@ document.querySelector("#login-form").addEventListener("submit", async (event) =
   event.preventDefault();
   loginNote.textContent = "";
   const password = new FormData(event.currentTarget).get("password");
-  const response = await api("/api/login", { method: "POST", body: JSON.stringify({ password }) });
+  let response;
+  try {
+    response = await api("/api/login", { method: "POST", body: JSON.stringify({ password }) });
+  } catch {
+    loginNote.textContent = "Немає зв’язку з сервером адмінки. Спробуйте пізніше.";
+    return;
+  }
+  if (response.status === 404) {
+    loginNote.textContent = "Сервер адмінки ще не підключений на хостингу. Потрібен новий Publish.";
+    return;
+  }
   if (response.status === 503) {
     loginNote.textContent = "Пароль адмінки ще не додано в секрети Cursor. Назва секрету: ADMIN_PASSWORD.";
     return;
   }
   if (!response.ok) {
-    loginNote.textContent = "Пароль не підійшов.";
+    loginNote.textContent = "Пароль не підійшов. Введіть той самий, що в секреті ADMIN_PASSWORD.";
     return;
   }
   await openEditor();
