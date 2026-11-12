@@ -369,15 +369,18 @@ input, select, textarea {
 }
 address { font-style: normal; line-height: 1.5; }
 .text-link { display: inline-block; margin-top: 0.7rem; margin-right: 1rem; }
-.ig-link {
+.ig-link,
+.map-link {
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
   text-decoration: none;
   border-bottom: 1px solid transparent;
 }
-.ig-link:hover { border-bottom-color: currentColor; }
-.ig-icon {
+.ig-link:hover,
+.map-link:hover { border-bottom-color: currentColor; }
+.ig-icon,
+.map-icon {
   flex: 0 0 auto;
   display: block;
 }
