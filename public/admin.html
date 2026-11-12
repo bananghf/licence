@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Адмінка — Щастя Є</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <main class="admin">
+    <header class="admin-top">
+      <a href="/">← На сайт</a>
+      <h1>Редагування сайту</h1>
+    </header>
+    <section id="login" class="panel">
+      <p>Сюди заходять лише з паролем. Тут змінюються тексти, телефон, адреса й список послуг. Заявки з форми з’являються нижче і, якщо підключено Telegram, дублюються в бота.</p>
+      <form id="login-form">
+        <label>Пароль адмінки<input name="password" type="password" required minlength="4" autocomplete="current-password"></label>
+        <button class="btn btn-solid" type="submit">Увійти</button>
+        <p id="login-note" class="form-note" role="status"></p>
+      </form>
+    </section>
+    <section id="editor" class="panel" hidden>
+      <div class="admin-actions">
+        <button class="btn btn-solid" id="save" type="button">Зберегти</button>
+        <button class="btn btn-line" id="logout" type="button">Вийти</button>
+        <p id="save-note" class="form-note" role="status"></p>
+      </div>
+      <div id="fields"></div>
+      <h2>Заявки</h2>
+      <div id="leads"></div>
+    </section>
+  </main>
+  <script src="/js/admin.js"></script>
+</body>
+</html>
