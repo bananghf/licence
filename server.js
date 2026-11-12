@@ -4,6 +4,7 @@ const path = require("path");
 const { init, getContent, saveContent, addLead, listLeads } = require("./lib/store");
 const { renderPage } = require("./lib/render");
 const { configured, checkPassword, isAuthed, sessionCookie, clearCookie } = require("./lib/auth");
+const telegram = require("./lib/telegram");
 
 const root = __dirname;
 const port = Number(process.env.PORT) || 4173;
@@ -147,7 +148,15 @@ async function handler(req, res) {
       const body = await readBody(req);
       const lead = await addLead(body);
       if (!lead) return json(res, 400, { error: "invalid" });
+      await telegram.notifyLead(lead);
       return json(res, 201, { ok: true });
+    }
+    if (req.method === "GET" && pathname === "/api/status") {
+      if (!isAuthed(req.headers.cookie)) return json(res, 401, { error: "auth" });
+      return json(res, 200, {
+        adminConfigured: configured(),
+        telegramConfigured: telegram.configured(),
+      });
     }
     if (req.method === "GET") {
       const file = publicFile(pathname);

@@ -147,6 +147,16 @@ async function openEditor() {
   draw();
   const leadResponse = await api("/api/leads");
   drawLeads(leadResponse.ok ? await leadResponse.json() : []);
+  const status = await api("/api/status");
+  if (status.ok) {
+    const info = await status.json();
+    const note = document.createElement("p");
+    note.className = "muted";
+    note.textContent = info.telegramConfigured
+      ? "Telegram підключено: нові заявки також ідуть у бота."
+      : "Telegram ще не підключено. Поки заявки видно лише тут.";
+    leads.prepend(note);
+  }
   login.hidden = true;
   editor.hidden = false;
 }
