@@ -2,16 +2,26 @@ const header = document.querySelector(".header");
 const toggle = document.querySelector(".nav-toggle");
 const nav = document.querySelector(".nav");
 
-if (toggle && nav) {
-  toggle.addEventListener("click", () => {
-    const open = header.classList.toggle("is-open");
+if (toggle && nav && header) {
+  const label = toggle.querySelector(".visually-hidden");
+
+  const setOpen = (open) => {
+    header.classList.toggle("is-open", open);
+    document.body.classList.toggle("is-nav-open", open);
     toggle.setAttribute("aria-expanded", String(open));
+    if (label) label.textContent = open ? "Закрити" : "Меню";
+  };
+
+  toggle.addEventListener("click", () => {
+    setOpen(!header.classList.contains("is-open"));
   });
+
   nav.addEventListener("click", (event) => {
-    if (event.target.closest("a")) {
-      header.classList.remove("is-open");
-      toggle.setAttribute("aria-expanded", "false");
-    }
+    if (event.target.closest("a")) setOpen(false);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") setOpen(false);
   });
 }
 
