@@ -60,7 +60,9 @@ function draw() {
     field("Адреса, кожен рядок окремо", content.addressLines.join("\n"), (v) => { content.addressLines = lines(v); }, true),
     field("Адреса для карти", content.mapQuery, (v) => { content.mapQuery = v; }),
     field("Instagram, повне посилання", content.instagramUrl, (v) => { content.instagramUrl = v; }),
-    field("Instagram, як показано", content.instagramHandle, (v) => { content.instagramHandle = v; })
+    field("Instagram, як показано", content.instagramHandle, (v) => { content.instagramHandle = v; }),
+    field("TikTok, повне посилання", content.tiktokUrl, (v) => { content.tiktokUrl = v; }),
+    field("TikTok, як показано", content.tiktokHandle, (v) => { content.tiktokHandle = v; })
   );
 
   const hero = block("Перший екран");
