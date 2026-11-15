@@ -154,6 +154,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
   align-items: center;
   padding: 1.6rem 0 1.2rem;
 }
+.hero-photo {
+  margin: 0;
+  align-self: center;
+  width: 100%;
+}
 .hero-brand {
   font-family: var(--serif);
   font-size: clamp(2.4rem, 4.6vw, 3.6rem);
@@ -217,9 +222,12 @@ h1 { font-size: clamp(2.1rem, 3.8vw, 3.2rem); max-width: 16ch; }
 .btn-line:hover { background: var(--ink); color: var(--cream); }
 .hero-photo img {
   width: 100%;
-  aspect-ratio: 5 / 4;
+  height: auto;
+  aspect-ratio: 16 / 9;
   object-fit: cover;
+  object-position: center 42%;
   border-radius: 18px;
+  display: block;
 }
 
 .stats {
@@ -509,7 +517,7 @@ address { font-style: normal; line-height: 1.5; }
     min-height: calc(100svh - var(--header));
     aspect-ratio: auto;
     object-fit: cover;
-    object-position: center 38%;
+    object-position: center 48%;
     border-radius: 0;
   }
   .hero-copy {
