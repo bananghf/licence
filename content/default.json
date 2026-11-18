@@ -123,7 +123,9 @@
     {"image": "/images/sweet-1.jpg", "alt": "Солодка станція з тістечками"},
     {"image": "/images/cryo.jpg", "alt": "Кріо-шоу з ягодами"},
     {"image": "/images/bar-1.jpg", "alt": "Бармен наливає шампанське у вежу з келихів"},
-    {"image": "/images/dessert.jpg", "alt": "Червоний десерт із карткою Щастя Є"}
+    {"image": "/images/dessert.jpg", "alt": "Червоний десерт із карткою Щастя Є"},
+    {"image": "/images/gallery-smoke-plate.jpg", "alt": "М’ясна подача з димом на чорній тарілці"},
+    {"image": "/images/gallery-black-plate.jpg", "alt": "Закуска з пате, томатами й ягодами на чорній тарілці"}
   ],
   "faqTitle": "Часті питання",
   "faq": [
