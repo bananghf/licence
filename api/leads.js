@@ -1,9 +1,10 @@
 const { init, addLead } = require("../lib/store");
-const { notifyLead } = require("../lib/telegram");
+const { notifyLead, ensureWebhook } = require("../lib/telegram");
 const { clientIp, limited, sendJson, readBody } = require("../lib/api-util");
 
 module.exports = async function handler(req, res) {
   await init().catch(() => {});
+  ensureWebhook().catch(() => {});
   if (req.method === "POST") {
     if (limited(`lead:${clientIp(req)}`, 5, 60 * 60 * 1000)) return sendJson(res, 429, { error: "rate" });
     try {
