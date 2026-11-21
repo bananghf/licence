@@ -1,7 +1,7 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
-const { init, getContent, saveContent, addLead, listLeads } = require("./lib/store");
+const { init, getContent, saveContent, addLead, listLeads, removeTelegramChat } = require("./lib/store");
 const { renderPage } = require("./lib/render");
 const { configured, checkPassword, isAuthed, sessionCookie, clearCookie, revokeFromCookie } = require("./lib/auth");
 const telegram = require("./lib/telegram");
@@ -93,7 +93,26 @@ async function handler(req, res) {
     }
     if (req.method === "GET" && pathname === "/api/status") {
       if (!isAuthed(req.headers.cookie)) return sendJson(res, 401, { error: "auth" });
-      return sendJson(res, 200, { adminConfigured: configured(), telegramConfigured: telegram.configured() });
+      const telegramStatus = await telegram.status();
+      return sendJson(res, 200, { adminConfigured: configured(), ...telegramStatus });
+    }
+    if (req.method === "POST" && pathname === "/api/telegram/webhook") {
+      if (!telegram.verifyWebhook(req)) return sendJson(res, 401, { error: "webhook" });
+      if (limited("tg-hook", 120, 60 * 1000)) return sendJson(res, 429, { error: "rate" });
+      const update = await readBody(req);
+      await telegram.handleUpdate(update || {});
+      return sendJson(res, 200, { ok: true });
+    }
+    if (req.method === "DELETE" && pathname.startsWith("/api/telegram/chats/")) {
+      if (!csrf(req) || !isAuthed(req.headers.cookie)) return sendJson(res, 401, { error: "auth" });
+      const chatId = decodeURIComponent(pathname.slice("/api/telegram/chats/".length));
+      await removeTelegramChat(chatId);
+      return sendJson(res, 200, await telegram.status());
+    }
+    if (req.method === "POST" && pathname === "/api/telegram/setup") {
+      if (!csrf(req) || !isAuthed(req.headers.cookie)) return sendJson(res, 401, { error: "auth" });
+      const hook = await telegram.ensureWebhook();
+      return sendJson(res, hook.ok ? 200 : 502, { ...(await telegram.status()), webhook: hook });
     }
     if (req.method === "POST" && pathname === "/api/login") {
       if (!csrf(req)) return sendJson(res, 403, { error: "csrf" });
@@ -136,7 +155,11 @@ async function handler(req, res) {
 
 http.createServer(handler).listen(port, "0.0.0.0", () => {
   console.log(`listening ${port}`);
-  init().catch((err) => {
-    console.error("db init skipped", err && err.message ? err.message : "error");
-  });
+  init()
+    .catch((err) => {
+      console.error("db init skipped", err && err.message ? err.message : "error");
+    })
+    .finally(() => {
+      telegram.ensureWebhook().catch(() => {});
+    });
 });

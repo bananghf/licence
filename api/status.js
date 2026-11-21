@@ -7,6 +7,6 @@ module.exports = async function handler(req, res) {
   if (!isAuthed(req.headers.cookie || "")) return sendJson(res, 401, { error: "auth" });
   return sendJson(res, 200, {
     adminConfigured: configured(),
-    telegramConfigured: telegram.configured(),
+    ...(await telegram.status()),
   });
 };

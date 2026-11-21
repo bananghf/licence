@@ -15,7 +15,7 @@
       <h1>Редагування сайту</h1>
     </header>
     <section id="login" class="panel">
-      <p>Сюди заходять лише з паролем. Тут змінюються тексти, телефон, адреса й список послуг. Заявки з форми з’являються нижче і, якщо підключено Telegram, дублюються в бота.</p>
+      <p>Сюди заходять лише з паролем. Тут змінюються тексти, телефон, адреса й список послуг. Заявки з форми видно нижче; у Telegram їх отримують усі, хто підписався в боті кодом доступу.</p>
       <form id="login-form">
         <label>Пароль адмінки<input name="password" type="password" required minlength="8" autocomplete="current-password"></label>
         <button class="btn btn-solid" type="submit">Увійти</button>
@@ -29,6 +29,8 @@
         <p id="save-note" class="form-note" role="status"></p>
       </div>
       <div id="fields"></div>
+      <h2>Telegram</h2>
+      <div id="telegram"></div>
       <h2>Заявки</h2>
       <div id="leads"></div>
     </section>

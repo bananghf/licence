@@ -1,6 +1,7 @@
 const login = document.querySelector("#login");
 const editor = document.querySelector("#editor");
 const fields = document.querySelector("#fields");
+const telegramBox = document.querySelector("#telegram");
 const leads = document.querySelector("#leads");
 const loginNote = document.querySelector("#login-note");
 const saveNote = document.querySelector("#save-note");
@@ -142,6 +143,82 @@ function drawLeads(rows) {
   });
 }
 
+function drawTelegram(info) {
+  if (!telegramBox) return;
+  telegramBox.replaceChildren();
+  const note = document.createElement("p");
+  note.className = "muted";
+  if (!info.telegramConfigured) {
+    note.textContent = "Telegram ще не підключено. Додайте секрет TELEGRAM_BOT_TOKEN у Cursor — токен бота один раз.";
+    telegramBox.append(note);
+    return;
+  }
+
+  const botLabel = info.bot && info.bot.username ? `@${info.bot.username}` : "ваш Telegram-бот";
+  note.textContent = info.joinCodeConfigured
+    ? `Бот підключено (${botLabel}). Щоб додати людину: відкрийте бота і надішліть код доступу з секрету TELEGRAM_JOIN_CODE (або /start КОД). Щоб вимкнути в себе — /stop.`
+    : `Бот підключено (${botLabel}), але немає коду доступу. Додайте секрет TELEGRAM_JOIN_CODE — тоді нові люди зможуть підписатись прямо в боті.`;
+  telegramBox.append(note);
+
+  if (info.bot && info.bot.link) {
+    const link = document.createElement("p");
+    const anchor = document.createElement("a");
+    anchor.href = info.bot.link;
+    anchor.target = "_blank";
+    anchor.rel = "noopener";
+    anchor.textContent = `Відкрити ${botLabel}`;
+    link.append(anchor);
+    telegramBox.append(link);
+  }
+
+  const setup = document.createElement("button");
+  setup.className = "btn btn-line";
+  setup.type = "button";
+  setup.textContent = "Оновити підключення бота";
+  setup.addEventListener("click", async () => {
+    setup.disabled = true;
+    const response = await api("/api/telegram/setup", { method: "POST", body: "{}" });
+    setup.disabled = false;
+    if (response.ok) drawTelegram(await response.json());
+  });
+  telegramBox.append(setup);
+
+  const recipients = Array.isArray(info.recipients) ? info.recipients : [];
+  if (!recipients.length) {
+    const empty = document.createElement("p");
+    empty.className = "muted";
+    empty.textContent = "Поки ніхто не підписаний. Надішліть код боту — chat id додасться сам.";
+    telegramBox.append(empty);
+    return;
+  }
+
+  recipients.forEach((row) => {
+    const item = document.createElement("article");
+    item.className = "lead-row";
+    const title = document.createElement("strong");
+    title.textContent = row.title || row.chatId;
+    const meta = document.createElement("p");
+    meta.className = "muted";
+    meta.textContent = `chat id: ${row.chatId}`;
+    item.append(title, meta);
+    if (!String(row.title || "").includes("TELEGRAM_CHAT_ID")) {
+      const remove = document.createElement("button");
+      remove.className = "btn btn-line";
+      remove.type = "button";
+      remove.textContent = "Видалити";
+      remove.addEventListener("click", async () => {
+        const response = await api(`/api/telegram/chats/${encodeURIComponent(row.chatId)}`, {
+          method: "DELETE",
+          body: "{}",
+        });
+        if (response.ok) drawTelegram(await response.json());
+      });
+      item.append(remove);
+    }
+    telegramBox.append(item);
+  });
+}
+
 async function openEditor() {
   const response = await api("/api/content");
   if (!response.ok) return;
@@ -150,15 +227,8 @@ async function openEditor() {
   const leadResponse = await api("/api/leads");
   drawLeads(leadResponse.ok ? await leadResponse.json() : []);
   const status = await api("/api/status");
-  if (status.ok) {
-    const info = await status.json();
-    const note = document.createElement("p");
-    note.className = "muted";
-    note.textContent = info.telegramConfigured
-      ? "Telegram підключено: нові заявки також ідуть у бота."
-      : "Telegram ще не підключено. Поки заявки видно лише тут.";
-    leads.prepend(note);
-  }
+  if (status.ok) drawTelegram(await status.json());
+  else drawTelegram({ telegramConfigured: false });
   login.hidden = true;
   editor.hidden = false;
 }
