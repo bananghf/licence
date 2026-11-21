@@ -1,14 +1,9 @@
-const { init, addLead, listLeads } = require("../lib/store");
-const { isAuthed } = require("../lib/auth");
+const { init, addLead } = require("../lib/store");
 const { notifyLead } = require("../lib/telegram");
 const { clientIp, limited, sendJson, readBody } = require("../lib/api-util");
 
 module.exports = async function handler(req, res) {
   await init().catch(() => {});
-  if (req.method === "GET") {
-    if (!isAuthed(req.headers.cookie || "")) return sendJson(res, 401, { error: "auth" });
-    return sendJson(res, 200, await listLeads());
-  }
   if (req.method === "POST") {
     if (limited(`lead:${clientIp(req)}`, 5, 60 * 60 * 1000)) return sendJson(res, 429, { error: "rate" });
     try {

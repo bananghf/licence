@@ -1,7 +1,7 @@
 {
   "name": "schastia",
   "private": true,
-  "description": "Сайт кейтерингу «Щастя Є» з адмінкою контенту",
+  "description": "Сайт кейтерингу «Щастя Є»",
   "scripts": {
     "start": "node server.js",
     "build": "node scripts/build-html.js",

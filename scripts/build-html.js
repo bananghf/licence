@@ -6,7 +6,7 @@ const content = require("../content/default.json");
 const siteUrl = (process.env.SITE_URL || "https://schastia.apps.grok.bot").replace(/\/$/, "");
 const root = path.join(__dirname, "..");
 const html = renderPage(content, siteUrl);
-const robots = `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /admin.html\nSitemap: ${siteUrl}/sitemap.xml\n`;
+const robots = `User-agent: *\nAllow: /\nSitemap: ${siteUrl}/sitemap.xml\n`;
 const urls = ["", ...content.services.map((service) => `#${service.id}`), "#kontakty"];
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
   .map((item) => `  <url><loc>${siteUrl}/${item}</loc></url>`)

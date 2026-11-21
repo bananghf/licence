@@ -1,11 +1,10 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
-const { init, getContent, saveContent, addLead, listLeads, removeTelegramChat } = require("./lib/store");
+const { init, getContent, addLead } = require("./lib/store");
 const { renderPage } = require("./lib/render");
-const { configured, checkPassword, isAuthed, sessionCookie, clearCookie, revokeFromCookie } = require("./lib/auth");
 const telegram = require("./lib/telegram");
-const { clientIp, limited, sendJson, readBody, csrf, secure } = require("./lib/api-util");
+const { clientIp, limited, sendJson, readBody } = require("./lib/api-util");
 
 const root = __dirname;
 const port = Number(process.env.PORT) || 4173;
@@ -35,7 +34,6 @@ function publicFile(urlPath) {
   const allowed =
     publicPrefixes.some((prefix) => urlPath.startsWith(prefix)) ||
     urlPath === "/favicon.svg" ||
-    urlPath === "/admin.html" ||
     urlPath === "/robots.txt" ||
     urlPath === "/sitemap.xml" ||
     urlPath === "/index.html";
@@ -63,12 +61,10 @@ async function handler(req, res) {
       const html = renderPage(await getContent(), siteUrl);
       return send(res, 200, html, { "Content-Type": "text/html; charset=utf-8" });
     }
-    if (req.method === "GET" && (pathname === "/admin" || pathname === "/admin.html")) {
-      const file = publicFile("/admin.html") || path.join(root, "admin.html");
-      return send(res, 200, fs.readFileSync(file), { "Content-Type": "text/html; charset=utf-8" });
-    }
     if (req.method === "GET" && pathname === "/robots.txt") {
-      return send(res, 200, `User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /admin.html\nSitemap: ${siteUrl}/sitemap.xml\n`, { "Content-Type": "text/plain; charset=utf-8" });
+      return send(res, 200, `User-agent: *\nAllow: /\nSitemap: ${siteUrl}/sitemap.xml\n`, {
+        "Content-Type": "text/plain; charset=utf-8",
+      });
     }
     if (req.method === "GET" && pathname === "/sitemap.xml") {
       const content = await getContent();
@@ -79,57 +75,12 @@ async function handler(req, res) {
       return send(res, 200, body, { "Content-Type": "application/xml; charset=utf-8" });
     }
     if (req.method === "GET" && pathname === "/api/health") return sendJson(res, 200, { ok: true });
-    if (req.method === "GET" && pathname === "/api/session") {
-      const ok = isAuthed(req.headers.cookie);
-      return sendJson(res, ok ? 200 : 401, { ok });
-    }
-    if (req.method === "GET" && pathname === "/api/content") {
-      if (!isAuthed(req.headers.cookie)) return sendJson(res, 401, { error: "auth" });
-      return sendJson(res, 200, await getContent());
-    }
-    if (req.method === "GET" && pathname === "/api/leads") {
-      if (!isAuthed(req.headers.cookie)) return sendJson(res, 401, { error: "auth" });
-      return sendJson(res, 200, await listLeads());
-    }
-    if (req.method === "GET" && pathname === "/api/status") {
-      if (!isAuthed(req.headers.cookie)) return sendJson(res, 401, { error: "auth" });
-      const telegramStatus = await telegram.status();
-      return sendJson(res, 200, { adminConfigured: configured(), ...telegramStatus });
-    }
     if (req.method === "POST" && pathname === "/api/telegram/webhook") {
       if (!telegram.verifyWebhook(req)) return sendJson(res, 401, { error: "webhook" });
       if (limited("tg-hook", 120, 60 * 1000)) return sendJson(res, 429, { error: "rate" });
       const update = await readBody(req);
       await telegram.handleUpdate(update || {});
       return sendJson(res, 200, { ok: true });
-    }
-    if (req.method === "DELETE" && pathname.startsWith("/api/telegram/chats/")) {
-      if (!csrf(req) || !isAuthed(req.headers.cookie)) return sendJson(res, 401, { error: "auth" });
-      const chatId = decodeURIComponent(pathname.slice("/api/telegram/chats/".length));
-      await removeTelegramChat(chatId);
-      return sendJson(res, 200, await telegram.status());
-    }
-    if (req.method === "POST" && pathname === "/api/telegram/setup") {
-      if (!csrf(req) || !isAuthed(req.headers.cookie)) return sendJson(res, 401, { error: "auth" });
-      const hook = await telegram.ensureWebhook();
-      return sendJson(res, hook.ok ? 200 : 502, { ...(await telegram.status()), webhook: hook });
-    }
-    if (req.method === "POST" && pathname === "/api/login") {
-      if (!csrf(req)) return sendJson(res, 403, { error: "csrf" });
-      if (!configured()) return sendJson(res, 503, { error: "unconfigured" });
-      if (limited(`login:${clientIp(req)}`, 8, 15 * 60 * 1000)) return sendJson(res, 429, { error: "rate" });
-      const body = await readBody(req);
-      if (!checkPassword(body.password)) return sendJson(res, 401, { error: "auth" });
-      return sendJson(res, 200, { ok: true }, { "Set-Cookie": sessionCookie(secure(req)) });
-    }
-    if (req.method === "POST" && pathname === "/api/logout") {
-      if (!csrf(req)) return sendJson(res, 403, { error: "csrf" });
-      revokeFromCookie(req.headers.cookie);
-      return sendJson(res, 200, { ok: true }, { "Set-Cookie": clearCookie(secure(req)) });
-    }
-    if (req.method === "PUT" && pathname === "/api/content") {
-      if (!csrf(req) || !isAuthed(req.headers.cookie)) return sendJson(res, 401, { error: "auth" });
-      return sendJson(res, 200, await saveContent(await readBody(req)));
     }
     if (req.method === "POST" && pathname === "/api/leads") {
       if (limited(`lead:${clientIp(req)}`, 5, 60 * 60 * 1000)) return sendJson(res, 429, { error: "rate" });
