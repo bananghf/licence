@@ -12,5 +12,12 @@ module.exports = async function handler(req, res) {
   }
   const hook = await webhookKick;
   if (hook && hook.ok === false) webhookKick = null;
-  return sendJson(res, 200, { ok: true, webhook: Boolean(hook && hook.ok) });
+  const info = await telegram.webhookInfo().catch(() => null);
+  return sendJson(res, 200, {
+    ok: true,
+    webhook: Boolean(hook && hook.ok),
+    webhookUrl: info && info.url ? info.url.replace(/([?&]k=)[^&]+/i, "$1***") : "",
+    pending: info ? info.pending : null,
+    lastError: info ? info.lastError : "",
+  });
 };

@@ -9,7 +9,10 @@ module.exports = async function handler(req, res) {
   try {
     await init().catch(() => {});
     const update = await readBody(req);
-    await telegram.handleUpdate(update || {});
+    // Always 200 quickly so Telegram does not disable the webhook on slow replies.
+    const done = telegram.handleUpdate(update || {}).catch(() => {});
+    // In serverless, await the work so the runtime does not freeze mid-send.
+    await done;
     return sendJson(res, 200, { ok: true });
   } catch {
     return sendJson(res, 400, { error: "bad" });
