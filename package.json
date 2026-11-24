@@ -5,7 +5,9 @@
   "scripts": {
     "start": "node server.js",
     "build": "node scripts/build-html.js",
-    "build:html": "node scripts/build-html.js"
+    "build:html": "node scripts/build-html.js",
+    "deploy:cloudflare": "npm run build && wrangler deploy",
+    "cf:dev": "wrangler dev"
   },
   "engines": {
     "node": ">=20"
