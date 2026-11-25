@@ -1,7 +1,7 @@
 {
-  "name": "schastia",
+  "name": "beauty-flight-plan",
   "private": true,
-  "description": "Сайт кейтерингу «Щастя Є»",
+  "description": "THE BEAUTY FLIGHT PLAN — сайт менторства beauty-бізнесу Анни Павлюк",
   "scripts": {
     "start": "node server.js",
     "build": "node scripts/build-html.js",

@@ -1,4 +1,4 @@
-name = "schastia"
+name = "beauty-flight-plan"
 main = "workers/cloudflare.mjs"
 compatibility_date = "2025-09-15"
 compatibility_flags = ["nodejs_compat"]
@@ -7,8 +7,8 @@ compatibility_flags = ["nodejs_compat"]
 # Keep images/css/js next to the worker bundle via Rules below if needed.
 
 [vars]
-# Override after deploy, e.g. https://schastia.yourdomain.com
-SITE_URL = "https://schastia.apps.grok.bot"
+# Override after deploy, e.g. https://beauty-flight-plan.yourdomain.com
+SITE_URL = "https://beauty-flight-plan.apps.grok.bot"
 
 # Secrets (set via dashboard or CLI, do NOT commit values):
 #   npx wrangler secret put TELEGRAM_BOT_TOKEN
