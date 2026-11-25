@@ -22,7 +22,7 @@ const types = {
 const publicPrefixes = ["/css/", "/js/", "/images/", "/fonts/"];
 
 function siteUrl() {
-  return String(process.env.SITE_URL || "https://schastia.apps.grok.bot").replace(/\/$/, "");
+  return String(process.env.SITE_URL || "https://beauty-flight-plan.apps.grok.bot").replace(/\/$/, "");
 }
 
 function send(res, status, body, headers = {}) {
@@ -71,7 +71,7 @@ async function handler(req, res) {
     }
     if (req.method === "GET" && pathname === "/sitemap.xml") {
       const content = await getContent();
-      const urls = ["", ...content.services.map((service) => `#${service.id}`), "#kontakty"];
+      const urls = ["", "#pro-mene", "#poslugy", "#tools", "#filosofiya", "#vidguky", "#kontakty"];
       const body = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls
         .map((item) => `  <url><loc>${base}/${item}</loc></url>`)
         .join("\n")}\n</urlset>\n`;
