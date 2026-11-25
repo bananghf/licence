@@ -25,7 +25,9 @@
   <header class="header">
     <div class="bar">
       <a class="brand" href="#top">
-        <img class="brand-mark" src="/images/stickers/plane.png" alt="" width="36" height="28">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 80 36" width="48" height="22"><path d="M6 22.5 34 18 72 8l4 3-30 9 30 6-4 2.5-26-4.5-12 1.5-16 5-4-2 8-4.5Z" fill="currentColor"/><path d="M48 14c8-2 16-4 26-6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="1.2 2.4" stroke-linecap="round" opacity=".7"/></svg>
+        </span>
         <span>
           <strong>THE BEAUTY FLIGHT PLAN</strong>
           <small>beauty business mentor</small>
@@ -51,10 +53,15 @@
       <div class="hero-grid">
         <figure class="hero-photo">
           <img src="/images/anna-hero.jpg" alt="Анна Павлюк — beauty business mentor у кабіні літака" width="853" height="1280">
-          <img class="sticker sticker-approved" src="/images/stickers/beauty-approved.png" alt="" width="120" height="120">
+          <img class="sticker sticker-approved" src="/images/stickers/beauty-approved.png" alt="" width="110" height="110">
         </figure>
         <div class="hero-copy">
-          <p class="hero-brand">THE BEAUTY FLIGHT PLAN</p>
+          <p class="hero-brand">
+            THE BEAUTY FLIGHT PLAN
+            <span class="flight-mark" aria-hidden="true">
+              <svg viewBox="0 0 80 36" width="58" height="26"><path d="M6 22.5 34 18 72 8l4 3-30 9 30 6-4 2.5-26-4.5-12 1.5-16 5-4-2 8-4.5Z" fill="currentColor"/><path d="M48 14c8-2 16-4 26-6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="1.2 2.4" stroke-linecap="round" opacity=".85"/></svg>
+            </span>
+          </p>
           <h1>Стратегія. Система. Результат.</h1>
           <p class="lead">Допомагаю власникам та керівникам beauty-бізнесу будувати прибуткові, системні та масштабовані компанії.</p>
           <ul class="hero-values"><li>
@@ -67,24 +74,17 @@
         <span class="value-icon"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path fill="currentColor" d="M12 20.4 10.6 19.1C5.4 14.4 2 11.3 2 7.5A4.5 4.5 0 0 1 6.5 3 5.3 5.3 0 0 1 12 5.1 5.3 5.3 0 0 1 17.5 3 4.5 4.5 0 0 1 22 7.5c0 3.8-3.4 6.9-8.6 11.6L12 20.4Z"/></svg></span>
         <span>Сервіс, у який закохуються</span>
       </li></ul>
-          <div class="actions">
-            <button class="btn btn-solid" type="button" data-open-form data-intent="consultation">Записатися на консультацію</button>
-            <a class="btn btn-line" href="#poslugy">Послуги</a>
-          </div>
-          <div class="hero-stickers" aria-hidden="true">
-            <img src="/images/stickers/ne-khaos.png" alt="" width="160" height="70">
-            <img src="/images/stickers/pratsyuemo.png" alt="" width="150" height="80">
-          </div>
         </div>
       </div>
     </section>
 
     <section class="section section-soft" id="poslugy-preview">
-      <div class="section-head">
+      <div class="section-head section-head-row">
         <h2>Послуги</h2>
         <p>Практичний досвід і готові рішення для розвитку вашого beauty-бізнесу.</p>
       </div>
       <div class="highlight-grid"><article class="highlight-card">
+        <span class="highlight-icon"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path fill="currentColor" d="M4 4h16v12H7.2L4 19.2V4Zm3 4v2h10V8H7Zm0 4v2h7v-2H7Z"/></svg></span>
         <div>
           <h3>Консультація</h3>
           <p>Знайдемо рішення та чіткий план дій під ваш запит.</p>
@@ -93,6 +93,7 @@
           <span aria-hidden="true">→</span>
         </a>
       </article><article class="highlight-card">
+        <span class="highlight-icon"><svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path fill="currentColor" d="M12 3 3 7.5 12 12l9-4.5L12 3Zm-7.5 8.2v3.3L12 19l7.5-4.5v-3.3L12 16.5 4.5 11.2Z"/></svg></span>
         <div>
           <h3>Супровід</h3>
           <p>Чотири тижні системної роботи над процесами вашого бізнесу.</p>
@@ -101,15 +102,14 @@
           <span aria-hidden="true">→</span>
         </a>
       </article></div>
-      <div class="sticker-row" aria-hidden="true">
-        <img src="/images/stickers/tags.png" alt="" width="220" height="280">
-        <img src="/images/stickers/focus-plan.png" alt="" width="180" height="120">
-        <img src="/images/stickers/biznes-servis.png" alt="" width="220" height="80">
-      </div>
     </section>
 
     <section class="section" id="pro-mene">
       <div class="about-grid">
+        <aside class="about-visual">
+          <img src="/images/brand/about-cabin.jpg" alt="Робоче місце в кабіні літака з логотипом THE BEAUTY FLIGHT PLAN" loading="lazy" width="640" height="800">
+          <img class="sticker sticker-float" src="/images/stickers/ne-khaos.png" alt="" width="150" height="70">
+        </aside>
         <div class="about-copy">
           <p class="eyebrow">Думаю, варто познайомитися ближче</p>
           <h2>Про мене</h2>
@@ -119,10 +119,6 @@
           <h3>Чому я вважаю себе компетентною говорити про beauty-бізнес?</h3>
           <p>За ці роки я працювала з абсолютно різними концепціями: салонами краси, б’юті-барами, студіями та SPA-просторами. З різним масштабом, командами, спектром послуг, ціновим сегментом і внутрішніми процесами.</p><p>Я бачила beauty-бізнес ізсередини: працювала з командами, сервісом, продажами, фінансовими показниками, мотивацією, системою управління та розвитком бізнесу.</p><p>Тому все, чим я ділитимуся тут, — це не лише теорія. Це знання, висновки й інструменти, які я отримала завдяки реальному досвіду, власним рішенням, помилкам і результатам.</p>
         </div>
-        <aside class="about-visual">
-          <img src="/images/anna-hero.jpg" alt="Анна Павлюк — beauty business mentor у кабіні літака" loading="lazy" width="640" height="960">
-          <img class="sticker sticker-float" src="/images/stickers/pratsyuemo.png" alt="" width="140" height="80">
-        </aside>
       </div>
     </section>
 
@@ -260,41 +256,63 @@
       </div>
     </section>
 
-    <section class="section" id="tools">
+    <section class="section section-soft" id="tools">
       <div class="section-head">
         <h2>Beauty Business Tools</h2>
         <p>Готові інструменти та знання для системної роботи beauty-бізнесу.</p>
       </div>
-      <div class="tools-grid"><article class="tool-card" id="tool-checklists">
-        <h3>Чек-листи</h3>
+      <div class="tools-feature-grid"><article class="tool-feature" id="tool-checklists">
+        <span class="highlight-icon"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M6 3h12v18l-6-3-6 3V3Zm3 4v2h6V7H9Zm0 4v2h6v-2H9Z"/></svg></span>
+        <h3>Чек-лист роботи адміністратора</h3>
         <p>199 грн за кожен. Готові інструменти для організації та контролю роботи бізнесу.</p>
-        <button class="btn btn-line" type="button" disabled>Переглянути</button>
-      </article><article class="tool-card" id="tool-channel">
-        <h3>Закритий Telegram-канал</h3>
-        <p>1 350 грн на місяць або 11 500 грн на рік.</p>
-        <button class="btn btn-line" type="button" disabled>Отримати доступ</button>
-      </article><article class="tool-card" id="tool-templates">
+        <button class="circle-btn" type="button" disabled aria-label="Переглянути"><span aria-hidden="true">↓</span></button>
+      </article><article class="tool-feature" id="tool-channel">
+        <span class="highlight-icon"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M3 11.5 21 3l-3.2 18-5.6-4.8-3.4 3.2.1-5.7L3 11.5Z"/></svg></span>
+        <h3>Telegram-канал</h3>
+        <p>1 350 грн на місяць або 11 500 грн на рік. Практика, поради та підтримка.</p>
+        <button class="circle-btn" type="button" disabled aria-label="Отримати доступ"><span aria-hidden="true">↓</span></button>
+      </article><article class="tool-feature" id="tool-form">
+        <span class="highlight-icon"><svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path fill="currentColor" d="M5 3h14v18H5V3Zm3 4v2h8V7H8Zm0 4v2h8v-2H8Zm0 4v2h5v-2H8Z"/></svg></span>
+        <h3>Форма для заповнення</h3>
+        <p>Розкажи про свій запит, і я підберу найкраще рішення для тебе.</p>
+        <button class="circle-btn" type="button" data-open-form data-intent="consultation" aria-label="Заповнити"><span aria-hidden="true">→</span></button>
+      </article></div>
+      <div class="tools-grid"><article class="tool-card">
         <h3>Шаблони документів</h3>
         <p>Посадові інструкції, стандарти роботи, скрипти комунікації.</p>
         <button class="btn btn-line" type="button" disabled>Скоро</button>
-      </article><article class="tool-card" id="tool-finance">
+      </article><article class="tool-card">
         <h3>Фінансові інструменти</h3>
         <p>Готові таблиці, калькулятори, шаблони звітності.</p>
         <button class="btn btn-line" type="button" disabled>Скоро</button>
-      </article><article class="tool-card" id="tool-webinars">
+      </article><article class="tool-card">
         <h3>Вебінари та майстер-класи</h3>
         <p>Практичні формати для розвитку управлінських навичок.</p>
         <button class="btn btn-line" type="button" disabled>Скоро</button>
       </article></div>
+      <div class="sticker-row" aria-hidden="true">
+        <img src="/images/stickers/tags.png" alt="" width="200" height="260">
+        <img src="/images/stickers/focus-plan.png" alt="" width="170" height="110">
+        <img src="/images/stickers/biznes-servis.png" alt="" width="210" height="70">
+        <img src="/images/stickers/pratsyuemo.png" alt="" width="150" height="80">
+      </div>
     </section>
 
     <section class="section section-philosophy" id="filosofiya">
-      <div class="section-head">
-        <p class="eyebrow">THE BEAUTY FLIGHT PLAN</p>
-        <h2>Філософія бренду</h2>
-        <p class="lead">Твій план польоту у світі beauty-бізнесу</p>
+      <div class="philosophy-layout">
+        <figure class="philosophy-window">
+          <img src="/images/brand/philosophy-wing.jpg" alt="Крило літака над хмарами на заході сонця" loading="lazy" width="640" height="800">
+        </figure>
+        <div class="philosophy-copy">
+          <p class="eyebrow">THE BEAUTY FLIGHT PLAN</p>
+          <h2>Філософія бренду</h2>
+          <p class="lead">Твій план польоту у світі beauty-бізнесу</p>
+          <div class="philosophy-intro"><p>Для мене beauty-бізнес — це великий, складний механізм, який я асоціюю з літаком. Кожна його деталь має своє призначення, кожен член екіпажу — свою роль, а кожен політ — чітку ціль.</p><p>The Beauty Flight Plan — це моя авторська система управління та розвитку beauty-бізнесу, створена на основі багаторічного практичного досвіду, методом проб і помилок, через власні управлінські рішення, виклики, перемоги та висновки.</p><p>В основі цієї системи — розуміння того, що успішний бізнес не може триматися лише на одній людині.</p></div>
+          <aside class="philosophy-note">
+            The Beauty Flight Plan — це твій маршрут до системної, професійної та комфортної роботи в beauty-індустрії.
+          </aside>
+        </div>
       </div>
-      <div class="philosophy-intro"><p>Для мене beauty-бізнес — це великий, складний механізм, який я асоціюю з літаком. Кожна його деталь має своє призначення, кожен член екіпажу — свою роль, а кожен політ — чітку ціль.</p><p>The Beauty Flight Plan — це моя авторська система управління та розвитку beauty-бізнесу, створена на основі багаторічного практичного досвіду, методом проб і помилок, через власні управлінські рішення, виклики, перемоги та висновки.</p><p>В основі цієї системи — розуміння того, що успішний бізнес не може триматися лише на одній людині.</p></div>
       <h3 class="concepts-title">Що стоїть за моєю концепцією?</h3>
       <div class="concepts-grid"><article class="concept">
         <h3>МАРШРУТ</h3>
@@ -359,13 +377,13 @@
       </figure></div>
     </section>
 
-    <section class="cta-band" id="kontakty">
+    <section class="cta-band" id="kontakty" style="--cta-image:url('/images/brand/cta-runway.jpg')">
       <div class="cta-inner">
         <h2>Готові вивести свій beauty-простір на новий рівень?</h2>
         <p>Залиште заявку — і ми прокладемо маршрут під ваш бізнес.</p>
         <div class="actions">
-          <button class="btn btn-solid" type="button" data-open-form data-intent="consultation">Записатися на консультацію ↗</button>
-          <a class="btn btn-line" href="https://t.me/pavliuk__anna" rel="noopener noreferrer" target="_blank">Написати в Telegram</a>
+          <button class="btn btn-cream" type="button" data-open-form data-intent="consultation">Записатися на консультацію ↗</button>
+          <a class="btn btn-ghost" href="https://www.instagram.com/pavliuk__anna" rel="noopener noreferrer" target="_blank">Instagram</a>
         </div>
         <ul class="contact-list">
           <li><a href="tel:+380738079929">+380 73 807 99 29</a> · Telegram</li>
