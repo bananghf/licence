@@ -8,7 +8,7 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 # Override after deploy, e.g. https://beauty-flight-plan.yourdomain.com
-SITE_URL = "https://beauty-flight-plan.apps.grok.bot"
+SITE_URL = "https://schastia.apps.grok.bot"
 
 # Secrets (set via dashboard or CLI, do NOT commit values):
 #   npx wrangler secret put TELEGRAM_BOT_TOKEN

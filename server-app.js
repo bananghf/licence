@@ -22,7 +22,7 @@ const types = {
 const publicPrefixes = ["/css/", "/js/", "/images/", "/fonts/"];
 
 function siteUrl() {
-  return String(process.env.SITE_URL || "https://beauty-flight-plan.apps.grok.bot").replace(/\/$/, "");
+  return String(process.env.SITE_URL || "https://schastia.apps.grok.bot").replace(/\/$/, "");
 }
 
 function send(res, status, body, headers = {}) {

@@ -3,7 +3,7 @@ const path = require("path");
 const { renderPage } = require("../lib/render");
 const content = require("../content/default.json");
 
-const siteUrl = (process.env.SITE_URL || "https://beauty-flight-plan.apps.grok.bot").replace(/\/$/, "");
+const siteUrl = (process.env.SITE_URL || "https://schastia.apps.grok.bot").replace(/\/$/, "");
 const root = path.join(__dirname, "..");
 const html = renderPage(content, siteUrl);
 const robots = `User-agent: *\nAllow: /\nSitemap: ${siteUrl}/sitemap.xml\n`;
