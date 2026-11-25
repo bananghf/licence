@@ -13,8 +13,8 @@
   "heroTitle": "The Beauty Flight Plan",
   "heroLead": "Стратегія, структура та підтримка для ефективної роботи адміністратора у beauty-сфері",
   "heroText": "",
-  "heroImage": "/images/mockup-hero.jpg",
-  "heroImageAlt": "Анна Павлюк — The Beauty Flight Plan",
+  "heroImage": "/images/anna-hero.jpg",
+  "heroImageAlt": "Анна Павлюк — beauty business mentor у кабіні літака",
   "heroValues": [
     { "label": "Системна робота", "icon": "chart" },
     { "label": "Зростання команди", "icon": "team" },
