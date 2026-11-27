@@ -3,9 +3,20 @@ main = "workers/cloudflare.mjs"
 compatibility_date = "2025-09-15"
 compatibility_flags = ["nodejs_compat"]
 
+# Don't pull real PostgreSQL into the Worker bundle
+[alias]
+pg = "./workers/empty-pg.js"
+
 [vars]
-# Після деплою постав свій домен, наприклад https://schastia.yourdomain.com
+# Після деплою постав свій домен, наприклад https://schastia.workers.dev
 SITE_URL = "https://schastia.apps.grok.bot"
+
+# Статика (HTML, CSS, фото) — з папки public/
+[assets]
+directory = "./public"
+binding = "ASSETS"
+# API обробляє Worker; решта — файли з public/
+run_worker_first = ["/api/*"]
 
 # D1 — база Cloudflare (без Neon / DATABASE_URL)
 # 1) npx wrangler d1 create schastia
