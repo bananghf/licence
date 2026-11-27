@@ -1,52 +1,39 @@
-# Деплой на Cloudflare Workers
+# Деплой на Cloudflare (без Neon / DATABASE_URL)
 
-Сайт «Щастя Є»: статика + API заявок + Telegram webhook.
+Сайт + заявки + Telegram `/start` + пароль. Дані в **Cloudflare D1**.
 
-## 1. Що потрібно
+## Що вводити в секрети
 
-- Акаунт [Cloudflare](https://dash.cloudflare.com)
-- Node.js 20+
-- Postgres (Neon / Supabase / Hyperdrive) — для заявок і підписок у боті
-- Секрети Telegram: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_PASSWORD`
+Тільки 2 секрети:
 
-## 2. Файли
+1. `TELEGRAM_BOT_TOKEN` — токен з @BotFather  
+2. `TELEGRAM_BOT_PASSWORD` — пароль, який ти сам придумаєш (його пишуть у боті після Start)
 
-Архів проєкту: усе з репозиторію (див. zip). Важливе:
+**DATABASE_URL більше не потрібен.**
 
-| Шлях | Навіщо |
-|------|--------|
-| `workers/cloudflare.mjs` | Точка входу Workers |
-| `wrangler.toml` | Конфіг Cloudflare |
-| `server-app.js` | Логіка сайту + API |
-| `public/` | CSS, JS, фото |
-| `content/default.json` | Тексти сайту |
-| `migrations/*.sql` | Таблиці Postgres |
+Невірний пароль → бот відповідає: `❌ Невірний пароль. Спробуйте ще раз.`
 
-## 3. Команди
+## Команди
 
 ```bash
 npm install
 npm install -D wrangler
 npm run build
 
-# підставте свій домен у wrangler.toml → [vars] SITE_URL
+# 1) Створити D1
+npx wrangler d1 create schastia
+# Скопіюй database_id у wrangler.toml → [[d1_databases]].database_id
+
+# 2) Створити таблиці
+npx wrangler d1 execute schastia --remote --file=./migrations/d1.sql
+
+# 3) Секрети
 npx wrangler secret put TELEGRAM_BOT_TOKEN
 npx wrangler secret put TELEGRAM_BOT_PASSWORD
-npx wrangler secret put DATABASE_URL
 
+# 4) У wrangler.toml постав SITE_URL на свій домен
 npx wrangler deploy
 ```
 
-Після деплою відкрийте `https://ВАШ_ДОМЕН/api/health` — має бути `"ok":true` і `"webhook":true`.
-
-У Telegram-боті: `/start` → пароль → заявки.
-
-## 4. База даних
-
-Виконайте SQL з `migrations/001_init.sql` і `migrations/002_telegram_chats.sql` у своєму Postgres.
-
-На Workers звичайний `pg` краще через **Cloudflare Hyperdrive** (прив’язка в `wrangler.toml`) або Neon connection string у `DATABASE_URL`.
-
-## 5. Домен
-
-Workers → Custom domains → додайте свій домен. Оновіть `SITE_URL` і знову `wrangler deploy`, щоб Telegram webhook вказував на правильний URL.
+Перевірка: відкрий `https://ТВІЙ_ДОМЕН/api/health`  
+У боті: `/start` → пароль → заявки. `/stop` — вимкнути.

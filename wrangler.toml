@@ -3,21 +3,21 @@ main = "workers/cloudflare.mjs"
 compatibility_date = "2025-09-15"
 compatibility_flags = ["nodejs_compat"]
 
-# Static files are also readable by the Node handler from ./public
-# Keep images/css/js next to the worker bundle via Rules below if needed.
-
 [vars]
-# Override after deploy, e.g. https://schastia.yourdomain.com
+# Після деплою постав свій домен, наприклад https://schastia.yourdomain.com
 SITE_URL = "https://schastia.apps.grok.bot"
 
-# Secrets (set via dashboard or CLI, do NOT commit values):
+# D1 — база Cloudflare (без Neon / DATABASE_URL)
+# 1) npx wrangler d1 create schastia
+# 2) встав database_id нижче
+# 3) npx wrangler d1 execute schastia --remote --file=./migrations/d1.sql
+[[d1_databases]]
+binding = "DB"
+database_name = "schastia"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+# Секрети (без DATABASE_URL):
 #   npx wrangler secret put TELEGRAM_BOT_TOKEN
 #   npx wrangler secret put TELEGRAM_BOT_PASSWORD
-#   npx wrangler secret put DATABASE_URL
-# Optional:
+# Опційно:
 #   npx wrangler secret put TELEGRAM_CHAT_ID
-
-# If you use Cloudflare Hyperdrive for Postgres, uncomment and set the id:
-# [[hyperdrive]]
-# binding = "HYPERDRIVE"
-# id = "YOUR_HYPERDRIVE_ID"

@@ -1,13 +1,14 @@
 /**
- * Cloudflare Workers entry (Node.js HTTP compat).
+ * Cloudflare Workers entry.
  * Secrets: TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_PASSWORD, SITE_URL
- * Optional: DATABASE_URL or Hyperdrive binding HYPERDRIVE
+ * Storage: D1 binding DB (no Neon / DATABASE_URL needed)
  */
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
 import { httpServerHandler } from "cloudflare:node";
 
 const require = createRequire(import.meta.url);
+const store = require("../lib/store.js");
 const { handler } = require("../server-app.js");
 
 function applyEnv(env) {
@@ -19,13 +20,10 @@ function applyEnv(env) {
     "TELEGRAM_CHAT_ID",
     "TELEGRAM_WEBHOOK_SECRET",
     "SITE_URL",
-    "DATABASE_URL",
   ]) {
     if (env[key]) process.env[key] = String(env[key]);
   }
-  if (env.HYPERDRIVE && env.HYPERDRIVE.connectionString) {
-    process.env.DATABASE_URL = String(env.HYPERDRIVE.connectionString);
-  }
+  if (env.DB) store.setD1(env.DB);
 }
 
 const server = createServer(handler);
