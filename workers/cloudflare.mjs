@@ -1,7 +1,8 @@
 /**
  * Cloudflare Workers entry (Node.js HTTP compat).
- * Secrets: TELEGRAM_BOT_TOKEN, TELEGRAM_BOT_PASSWORD, SITE_URL
+ * Secrets: BF_TELEGRAM_BOT_TOKEN, BF_TELEGRAM_BOT_PASSWORD, SITE_URL
  * Optional: DATABASE_URL or Hyperdrive binding HYPERDRIVE
+ * Do not wire catering (Щастя Є) TELEGRAM_* secrets here.
  */
 import { createServer } from "node:http";
 import { createRequire } from "node:module";
@@ -13,11 +14,10 @@ const { handler } = require("../server-app.js");
 function applyEnv(env) {
   if (!env || typeof env !== "object") return;
   for (const key of [
-    "TELEGRAM_BOT_TOKEN",
-    "TELEGRAM_BOT_PASSWORD",
-    "TELEGRAM_JOIN_CODE",
-    "TELEGRAM_CHAT_ID",
-    "TELEGRAM_WEBHOOK_SECRET",
+    "BF_TELEGRAM_BOT_TOKEN",
+    "BF_TELEGRAM_BOT_PASSWORD",
+    "BF_TELEGRAM_CHAT_ID",
+    "BF_TELEGRAM_WEBHOOK_SECRET",
     "SITE_URL",
     "DATABASE_URL",
   ]) {

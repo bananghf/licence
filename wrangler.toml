@@ -10,12 +10,13 @@ compatibility_flags = ["nodejs_compat"]
 # Override after deploy, e.g. https://beauty-flight-plan.yourdomain.com
 SITE_URL = "https://beauty-flight-plan.apps.grok.bot"
 
-# Secrets (set via dashboard or CLI, do NOT commit values):
-#   npx wrangler secret put TELEGRAM_BOT_TOKEN
-#   npx wrangler secret put TELEGRAM_BOT_PASSWORD
+# Secrets (set via dashboard or CLI, do NOT commit values).
+# Use BF_* names only — never reuse catering (Щастя Є) TELEGRAM_* secrets.
+#   npx wrangler secret put BF_TELEGRAM_BOT_TOKEN
+#   npx wrangler secret put BF_TELEGRAM_BOT_PASSWORD
 #   npx wrangler secret put DATABASE_URL
 # Optional:
-#   npx wrangler secret put TELEGRAM_CHAT_ID
+#   npx wrangler secret put BF_TELEGRAM_CHAT_ID
 
 # If you use Cloudflare Hyperdrive for Postgres, uncomment and set the id:
 # [[hyperdrive]]

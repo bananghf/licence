@@ -1,6 +1,16 @@
 const header = document.querySelector(".header");
 const toggle = document.querySelector(".nav-toggle");
 const nav = document.querySelector(".nav");
+const hero = document.querySelector(".hero");
+
+if (header && hero) {
+  const syncHeader = () => {
+    const threshold = Math.max(80, hero.offsetHeight - 80);
+    header.classList.toggle("is-solid", window.scrollY > threshold);
+  };
+  syncHeader();
+  window.addEventListener("scroll", syncHeader, { passive: true });
+}
 
 if (toggle && nav && header) {
   const label = toggle.querySelector(".visually-hidden");
