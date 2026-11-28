@@ -183,15 +183,14 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   letter-spacing: -0.01em;
 }
 .brand-mark {
-  width: 54px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  color: inherit;
+  width: 58px;
+  height: 42px;
   flex: 0 0 auto;
-  margin-left: -0.1rem;
+  margin-left: 0.1rem;
+  background-color: currentColor;
+  -webkit-mask: url("/images/brand/logo-plane-mask.png") center / contain no-repeat;
+  mask: url("/images/brand/logo-plane-mask.png") center / contain no-repeat;
 }
-.brand-mark svg { display: block; width: 54px; height: 40px; }
 .nav {
   display: flex;
   flex-wrap: wrap;
@@ -327,18 +326,15 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .flight-mark {
   position: absolute;
-  right: -0.4rem;
-  bottom: 0.15rem;
-  width: 5.75rem;
-  height: 4.3rem;
-  color: #f4efe8;
-  opacity: 0.96;
+  right: -0.6rem;
+  bottom: 0.05rem;
+  width: 6.5rem;
+  height: 4.7rem;
+  background-color: #f4efe8;
+  opacity: 0.98;
   pointer-events: none;
-}
-.flight-mark svg {
-  display: block;
-  width: 100%;
-  height: 100%;
+  -webkit-mask: url("/images/brand/logo-plane-mask.png") center / contain no-repeat;
+  mask: url("/images/brand/logo-plane-mask.png") center / contain no-repeat;
 }
 .hero h1 {
   font-family: var(--sans);
