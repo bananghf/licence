@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://beauty-flight-plan.apps.grok.bot/sitemap.xml
