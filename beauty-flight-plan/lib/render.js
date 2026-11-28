@@ -16,18 +16,6 @@ function valueIcon(kind) {
   return `<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path fill="currentColor" d="M4 19h2V9H4v10Zm7 0h2V5h-2v14Zm7 0h2v-7h-2v7Z"/></svg>`;
 }
 
-/** Top-down jet + dual curved trails — matches the mockup mark. */
-function planeMarkSvg(width, height) {
-  return `<svg viewBox="0 0 110 80" width="${width}" height="${height}" focusable="false" aria-hidden="true">
-    <path d="M62 36C42 40 24 52 8 74" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
-    <path d="M65 40C46 45 28 58 14 76" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" opacity=".88"/>
-    <g transform="translate(78 24) rotate(-36)">
-      <path fill="currentColor" d="M19.2 0C16.6-1.2 12.4-1.55 7.2-1.65L3.4-1.75 1-9.4-.8-9.7.4-1.85-4.6-2-8.7-7.35-11-7-7.6-2.05-15.8-1.55-18.4 0-15.8 1.55-7.6 2.05-11 7-8.7 7.35-4.6 2 .4 1.85-.8 9.7 1 9.4 3.4 1.75 7.2 1.65C12.4 1.55 16.6 1.2 19.2 0Z"/>
-      <rect x="-2.1" y="-5.35" width="3.4" height="1.7" rx=".7" fill="currentColor"/>
-      <rect x="-2.1" y="3.65" width="3.4" height="1.7" rx=".7" fill="currentColor"/>
-    </g>
-  </svg>`;
-}
 
 function renderPage(content, siteUrl) {
   const origin = String(siteUrl || "https://beauty-flight-plan.apps.grok.bot").replace(/\/$/, "");
@@ -232,7 +220,7 @@ function renderPage(content, siteUrl) {
     <div class="bar">
       <a class="brand" href="#top">
         <strong>${esc(content.brandName)}</strong>
-        <span class="brand-mark" aria-hidden="true">${planeMarkSvg(54, 40)}</span>
+        <span class="brand-mark" aria-hidden="true"></span>
       </a>
       <nav class="nav" id="site-nav" aria-label="Розділи">
         <a href="#pro-mene">Про мене</a>
@@ -260,7 +248,7 @@ function renderPage(content, siteUrl) {
           <div class="hero-copy">
             <div class="hero-brand-wrap">
               <p class="hero-brand">${esc(content.heroTitle)}</p>
-              <span class="flight-mark" aria-hidden="true">${planeMarkSvg(110, 80)}</span>
+              <span class="flight-mark" aria-hidden="true"></span>
             </div>
             <h1>${esc(content.heroLead)}</h1>
           </div>
@@ -437,7 +425,7 @@ function renderPage(content, siteUrl) {
     <div class="footer-grid">
       <a class="brand" href="#top">
         <strong>${esc(content.brandName)}</strong>
-        <span class="brand-mark" aria-hidden="true">${planeMarkSvg(40, 30)}</span>
+        <span class="brand-mark" aria-hidden="true"></span>
       </a>
       <nav aria-label="Футер">
         <a href="#pro-mene">Про мене</a>
