@@ -1,0 +1,16 @@
+CREATE TABLE IF NOT EXISTS site_content (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  body JSONB NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS leads (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  event_type TEXT NOT NULL DEFAULT '',
+  event_date TEXT NOT NULL DEFAULT '',
+  guests TEXT NOT NULL DEFAULT '',
+  message TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
