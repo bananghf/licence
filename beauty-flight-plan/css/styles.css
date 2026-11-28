@@ -322,7 +322,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   line-height: 0.95;
   letter-spacing: -0.035em;
   margin: 0;
-  color: #f4efe8;
+  color: var(--brand);
   max-width: 11ch;
 }
 .flight-mark {
@@ -331,7 +331,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   bottom: 0.05rem;
   width: 6.5rem;
   height: 4.7rem;
-  background-color: #f4efe8;
+  background-color: var(--brand);
   opacity: 0.98;
   pointer-events: none;
   -webkit-mask: url("/images/brand/logo-plane-mask.png") center / contain no-repeat;
